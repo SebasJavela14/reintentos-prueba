@@ -1,0 +1,148 @@
+/* LaHaus ai: tokens extraídos (2026-10-03). Recreación fiel, modo "Actual".
+ *
+ * Fuentes:
+ *   [EXACTO]  sitio público lahaus.ai (branding scrape: fuentes, colores, botón primario)
+ *   [APROX]   muestreo de pixeles en screenshots/ai-v2-*.png. Son frames de video comprimido:
+ *             los oscuros salen ~10-16 puntos más claros y los colores pueden variar ±8.
+ *   [ESTIM]   tamaños medidos en la captura y divididos por 2 (escala: sidebar 449px = 224px, w-56).
+ *
+ * Reglas aplicadas (wiki: books-ui-design-systems-mastery-budarina, design-tokens-hapi-lessons,
+ * books-practical-ui-dannaway, career/design-tokens/spec.md):
+ *   - 3 niveles: primitivo (<tono>-<paso>) → semántico (nombres shadcn por rol) → componente (ninguno).
+ *   - Los componentes solo usan semánticos, nunca primitivos (Budarina regla 1).
+ *   - Todo fill con texto encima lleva su par X / X-foreground (spec §2).
+ *   - Duplicados: si dos muestras difieren menos que el ruido del video, son un solo primitivo (Hapi #7).
+ *   - Un color que se usa una sola vez no se vuelve token (Budarina regla 3). Ej: el avatar morado.
+ *   - Si un valor muestreado está a <20 puntos de un color exacto del sitio, se usa el exacto.
+ *   - Mismos nombres en Figma (variables) y en código (código syntax WEB = var(--nombre)).
+ */
+
+@import url('https://fonts.googleapis.com/css2?family=Wix+Madefor+Text:wght@400;500;600;700&display=swap');
+
+:root {
+  /* ===== Primitivos: color (solo los usa la capa semántica) ===== */
+  --green-950: #00251D;   /* [EXACTO] secondary del sitio (muestreado #10241C) */
+  --green-900: #004132;   /* [EXACTO] link del sitio (muestreado #244838) */
+  --green-800: #1E4A3E;   /* [APROX] ítem activo del nav (muestreado #20443C) */
+  --green-600: #5E9A55;   /* [APROX] ícono del toast de éxito */
+  --mint-500:  #2DE187;   /* [EXACTO] primario del marketing. No aparece en el dashboard */
+  --mint-300:  #8FDCA3;   /* [APROX] botón primario del dashboard (muestreado #90DCA0) */
+  --mint-50:   #EFF8EB;   /* [APROX] fondo del toast de éxito */
+  --purple-700: #5418B0;  /* [APROX] círculo del ícono del modal de feedback */
+  --purple-600: #6A2FC0;  /* [APROX] texto "Resumen de la conversación" (antialias, baja confianza) */
+  --purple-400: #9C64E8;  /* [APROX] avatar. Uso único: no tiene semántico */
+  --purple-200: #C9A7F0;  /* [APROX] indicador del nav e íconos del sidebar (baja confianza) */
+  --red-700:   #A63B2F;   /* [APROX] chip "Hot" */
+  --amber-700: #8A5A00;   /* [PROPUESTA v1] texto de aviso: 6.0:1 sobre amber-50 */
+  --amber-50:  #FFF3DC;   /* [PROPUESTA v1] fondo de aviso */
+  --red-50:    #F6E1DE;   /* [PROPUESTA v1] fondo de severidad 4 y de "Hot" suave */
+  --orange-700: #B4541A;  /* [PROPUESTA v1] severidad 3 (mayor). 4.6:1 con texto blanco */
+  --orange-50:  #FBE7DA;  /* [PROPUESTA v1] fondo de severidad 3 */
+  --neutral-0:   #FFFFFF;
+  --neutral-50:  #F4F5F8; /* [APROX] lienzo, inputs, chips. Junta #F4F4F8 y #F0F3F3 (dentro del ruido) */
+  --neutral-200: #E3E7E7; /* [APROX] bordes, fila seleccionada, deshabilitado. Junta #E2E6E5, #E4E8E8, #E4E8F0 */
+  --neutral-300: #C6C8C8; /* [APROX] borde del outline y del select */
+  --neutral-400: #A9ABB4; /* [APROX] texto deshabilitado, placeholder */
+  --neutral-600: #4D4D4D; /* [EXACTO] textPrimary del sitio. Junta los metadatos #5E605F (dentro del ruido) */
+  --neutral-900: #1D2B28; /* [APROX] texto principal (negro verdoso) */
+
+  /* ===== Semánticos (shadcn + extensiones de LaHaus) ===== */
+  --background:           var(--neutral-0);   /* lista, cabecera del detalle, página */
+  --foreground:           var(--neutral-900);
+  --card:                 var(--neutral-0);   /* superficie elevada: burbuja entrante, card de mensaje IA */
+  --card-foreground:      var(--neutral-900);
+  --popover:              var(--neutral-0);   /* superposición: modal, select abierto */
+  --popover-foreground:   var(--neutral-900);
+  --primary:              var(--mint-300);    /* "Pausar agente" */
+  --primary-foreground:   var(--green-950);
+  --secondary:            var(--green-900);   /* botón oscuro "Reiniciar chat", burbuja saliente */
+  --secondary-foreground: var(--neutral-0);
+  --muted:                var(--neutral-50);  /* lienzo del chat, inputs rellenos, chips neutros */
+  --muted-foreground:     var(--neutral-600); /* texto secundario y metadatos */
+  --accent:               var(--neutral-200); /* fila seleccionada, segmented activo, pill de evento */
+  --accent-foreground:    var(--neutral-900);
+  --border:               var(--neutral-200); /* trazo decorativo */
+  --input:                var(--neutral-300); /* borde de campo y del botón outline */
+  --disabled:             var(--neutral-200); /* "Guardar", "Siguiente", "Enviar" */
+  --disabled-foreground:  var(--neutral-400);
+  /* --ring: no se observa ningún estado de foco. Es un hallazgo, no un token. */
+
+  /* Navegación (contrato sidebar de shadcn). La topbar usa el mismo color. */
+  --sidebar:                   var(--green-950);
+  --sidebar-foreground:        var(--neutral-0);
+  --sidebar-accent:            var(--green-800); /* ítem activo */
+  --sidebar-accent-foreground: var(--neutral-0);
+  --sidebar-primary:           var(--purple-200); /* indicador activo e íconos */
+
+  /* Extensiones de dominio */
+  --ai:               var(--purple-600); /* contenido generado por IA: resumen, ✦ */
+  --ai-strong:        var(--purple-700); /* fondo del ícono del feedback de respuestas IA */
+  --ai-foreground:    var(--neutral-0);  /* texto/ícono sobre ai-strong */
+  --hot:              var(--red-700);    /* score de lead "Hot" */
+  --hot-foreground:   var(--neutral-0);
+  --success:          var(--green-600);
+  --success-subtle:   var(--mint-50);
+  --success-foreground: var(--green-900); /* texto sobre success-subtle: "Aprobada", valor nuevo */
+  --warning:          var(--amber-700);  /* "En revisión", avisos de Meta, bloqueo de guardar */
+  --warning-subtle:   var(--amber-50);
+  --ring:             var(--mint-300);   /* foco visible (teclado). Antes no existía: era un hallazgo */
+  --overlay:          rgba(0, 37, 29, 0.32); /* fondo detrás de un modal */
+  --sidebar-link:     var(--mint-500);   /* "Cerrar sesión" */
+  --hot-subtle:       var(--red-50);
+
+  /* Escala de datos: severidad de la evaluación heurística (Nielsen, 0 a 4). Solo para datos, no para UI. */
+  --severity-0: var(--neutral-400);  --severity-0-subtle: var(--neutral-50);   /* no es un problema */
+  --severity-1: var(--neutral-600);  --severity-1-subtle: var(--neutral-200);  /* cosmético */
+  --severity-2: var(--amber-700);    --severity-2-subtle: var(--amber-50);     /* menor */
+  --severity-3: var(--orange-700);   --severity-3-subtle: var(--orange-50);    /* mayor */
+  --severity-4: var(--red-700);      --severity-4-subtle: var(--red-50);       /* catastrófico */
+
+  /* ===== Tipografía ===== */
+  /* Estilos de texto (los mismos 5 en Figma). Regla de la v1: 3 tamaños (18, 14, 12) y 2 pesos (400, 600). */
+  --font-sans: 'Wix Madefor Text', system-ui, sans-serif; /* [EXACTO] sitio + coincide en capturas */
+  /* "LaHaus Display" es propietaria y solo se usa en marketing. */
+  --font-size-xs: 12px;  /* [ESTIM] caption: horas, vista previa, chips */
+  --font-size-sm: 14px;  /* [ESTIM] body y label */
+  --font-size-md: 16px;  /* [ESTIM] heading de sección */
+  --font-size-lg: 18px;  /* [ESTIM] title de modal */
+  --line-height-xs: 16px; --line-height-sm: 20px; --line-height-md: 24px; --line-height-lg: 24px; /* ÷4 (Dannaway) */
+  --font-weight-regular: 400; --font-weight-medium: 500; --font-weight-strong: 600;
+  --type-display:        600 24px/32px var(--font-sans);  /* Display: solo documentos (título de un informe, cifras grandes). No se usa en el producto */
+  --type-title:          600 var(--font-size-lg)/var(--line-height-lg) var(--font-sans);  /* Title: título de página y de modal */
+  --type-body:           400 var(--font-size-sm)/var(--line-height-sm) var(--font-sans);  /* Body */
+  --type-body-strong:    600 var(--font-size-sm)/var(--line-height-sm) var(--font-sans);  /* Body strong: títulos de card, etiquetas */
+  --type-caption:        400 var(--font-size-xs)/var(--line-height-xs) var(--font-sans);  /* Caption: metadatos, ayudas */
+  --type-caption-strong: 600 var(--font-size-xs)/var(--line-height-xs) var(--font-sans);  /* Caption strong: valores, botones chicos */
+
+  /* ===== Espaciado: base 4, escala de la spec (0 4 8 12 16 24 32 48 64 80) ===== */
+  --spacing-0: 0px;   --spacing-1: 4px;   --spacing-2: 8px;   --spacing-3: 12px;  --spacing-4: 16px;
+  --spacing-6: 24px;  --spacing-8: 32px;  --spacing-12: 48px; --spacing-16: 64px; --spacing-20: 80px;
+
+  /* ===== Radios (una escalera: xs sm md lg xl, + full) ===== */
+  --radius-sm:   6px;    /* [ESTIM] inputs rellenos */
+  --radius-md:   10px;   /* [ESTIM] ítem activo del nav, card de mensaje IA */
+  --radius-lg:   16px;   /* [ESTIM] cards de personalidad, burbujas */
+  --radius-xl:   24px;   /* [ESTIM] modales */
+  --radius-full: 9999px; /* [EXACTO] botones del sitio. También chips, segmented, pill de idioma */
+
+  /* ===== Layout y controles ===== */
+  --layout-sidebar-width: 224px; /* [ESTIM] 449 ÷ 2 */
+  --layout-topbar-height: 68px;  /* [ESTIM] 136 ÷ 2 */
+  --layout-list-width:    412px; /* [ESTIM] 826 ÷ 2 */
+  --control-height-md:    40px;  /* [ESTIM] botones, inputs */
+  --control-height-xs:    22px;  /* [ESTIM] chips */
+  --control-height-sm:    32px;  /* botón chico, botón de ícono */
+
+  /* ===== Elevación ===== */
+  --shadow-overlay: 0 8px 32px rgba(0, 37, 29, 0.16); /* [ESTIM] modal. Teñida con verde, no negro (Dannaway p. 120) */
+  --shadow-raised:  0 1px 2px rgba(0, 37, 29, 0.12);  /* opción activa del selector, thumb del switch. Practical UI: 2 sombras */
+
+  /* ===== Movimiento (wiki: design-tokens-motion-system) =====
+     Solo transform y opacity. Entradas con ease-out, nunca ease-in. Bajo "reducir movimiento": casi cero. */
+  --ease-out:  cubic-bezier(0.23, 1, 0.32, 1);   /* entrar y salir */
+  --ease-move: cubic-bezier(0.77, 0, 0.175, 1);  /* moverse en pantalla (chevron) */
+  --duration-press: 120ms;  /* feedback al presionar */
+  --duration-fast:  160ms;  /* color, opacidad, tooltips */
+  --duration-base:  240ms;  /* abrir un card, barra, toast */
+  --duration-modal: 280ms;  /* modal: escala desde el centro */
+}

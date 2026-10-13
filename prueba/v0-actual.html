@@ -1,0 +1,387 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reintentos: réplica v0</title>
+<!-- Réplica funcional de la pantalla ACTUAL (PDF del caso, página 2). Incluye sus problemas a propósito.
+     Tokens: ../ds/tokens.css. Lo que la pantalla usa y no está en tokens.css va abajo como --obs-*:
+     son valores observados en el PDF, y cada uno es un hallazgo (ver component-map.md). -->
+<link rel="stylesheet" href="../ds/tokens.css">
+<style>
+  :root {
+    --obs-green-500: #00E57D;   /* switch, "Editar", "Siguiente". Tercer verde primario del producto */
+    --obs-mint-100: #BEF9E1;    /* fondo del badge "Aprobada" */
+    --obs-slate-100: #E2E9F2;   /* chip de número, "Mensaje libre", "Cierre", botones grises. Gris azulado */
+    --obs-slate-300: #C9D2DC;   /* borde de "Descartar" */
+    --obs-gray-400: #AFB4BA;    /* id de plantilla, ayudas */
+    --obs-teal-600: #417065;    /* texto del aviso de 24 h */
+    --obs-font-mono: ui-monospace, "SF Mono", Menlo, monospace; /* vista previa del mensaje */
+  }
+  * { box-sizing: border-box; margin: 0; }
+  html, body { height: 100%; }
+  body { font-family: var(--font-sans); color: var(--green-900); background: var(--background); font-size: 13px; }
+  button { font-family: inherit; }
+
+  .app { display: grid; grid-template-columns: var(--layout-sidebar-width) 1fr; grid-template-rows: var(--layout-topbar-height) 1fr; height: 100vh; }
+  .logo { background: var(--sidebar); color: #fff; display: flex; align-items: center; padding: 0 16px; font-size: 20px; font-weight: 600; letter-spacing: -.3px; }
+  .logo span { color: var(--purple-200); font-weight: 400; margin-left: 4px; }
+  .top { background: var(--sidebar); display: flex; align-items: stretch; justify-content: space-between; padding: 0 16px 0 0; color: #fff; }
+  .top nav { display: flex; gap: 4px; padding-left: 8px; }
+  .top nav a { display: flex; align-items: center; padding: 0 12px; color: #fff; text-decoration: none; font-weight: 600; font-size: 13px; border-bottom: 2px solid transparent; }
+  .top nav a.on { background: var(--green-900); border-bottom-color: var(--purple-200); border-radius: 8px 8px 0 0; margin-top: 4px; }
+  .top .right { display: flex; align-items: center; gap: 24px; }
+  .top .ico { color: var(--purple-200); font-size: 16px; }
+  .lang { height: 32px; padding: 0 14px; border: 1px solid rgba(255,255,255,.75); border-radius: var(--radius-full); display: flex; align-items: center; gap: 8px; font-weight: 600; }
+  .flag { width: 14px; height: 14px; border-radius: 50%; background: linear-gradient(#FCD116 50%, #003893 50% 75%, #CE1126 75%); }
+
+  .side { background: var(--sidebar); color: #fff; display: flex; flex-direction: column; padding: 8px 0; font-size: 13px; }
+  .side .grp { display: flex; gap: 10px; align-items: center; padding: 10px 16px; }
+  .side .grp i { color: var(--purple-200); font-style: normal; width: 16px; text-align: center; }
+  .side .grp b { font-weight: 600; }
+  .side a { display: block; padding: 10px 16px 10px 52px; color: #fff; text-decoration: none; }
+  .side .user { margin-top: auto; display: flex; gap: 10px; align-items: center; padding: 16px; font-size: 11px; line-height: 1.4; }
+  .side .user .av { width: 28px; height: 28px; border-radius: 50%; background: var(--purple-400); display: grid; place-items: center; font-weight: 600; }
+  .side .user u { color: var(--mint-500); }
+
+  .main { display: flex; flex-direction: column; min-height: 0; }
+  .subtabs { display: flex; gap: 40px; padding: 0 24px; margin: 0 0 0 0; height: 44px; align-items: center; border-bottom: 1px solid var(--muted); font-size: 13px; }
+  .subtabs a { color: var(--obs-gray-400); text-decoration: none; font-weight: 500; cursor: pointer; }
+  .subtabs a.on { color: var(--green-900); font-weight: 600; }
+  .scroll { flex: 1; overflow: auto; padding: 16px 24px 32px; }
+  .notice { display: flex; justify-content: space-between; align-items: baseline; }
+  .notice p { color: var(--obs-teal-600); font-size: 11px; font-weight: 500; }
+  .notice a { color: var(--green-900); font-weight: 600; font-size: 11px; text-decoration: underline; cursor: pointer; }
+  .hint { color: var(--obs-gray-400); font-size: 9px; margin: 8px 0 16px; }
+
+  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: start; }
+  .colhead { display: flex; gap: 8px; align-items: center; font-weight: 600; font-size: 12px; margin-bottom: 8px; }
+  .count { background: var(--muted); border-radius: var(--radius-full); padding: 1px 7px; font-size: 10px; }
+  .list { display: flex; flex-direction: column; gap: 12px; }
+
+  .card { background: var(--muted); border-radius: var(--radius-lg); padding: 14px 20px 14px; }
+  .card.off { }
+  .head { display: flex; align-items: center; gap: 8px; }
+  .num { min-width: 18px; height: 18px; border-radius: 4px; background: var(--obs-slate-100); color: var(--obs-gray-400); display: grid; place-items: center; font-size: 9px; }
+  .type { background: var(--obs-slate-100); border-radius: var(--radius-full); padding: 2px 7px; font-size: 9px; color: var(--green-900); }
+  .callico { width: 18px; height: 18px; border-radius: 50%; background: var(--green-950); color: #fff; display: grid; place-items: center; font-size: 9px; }
+  .title { font-weight: 600; font-size: 12px; }
+  .badge { margin-left: auto; background: var(--obs-mint-100); color: var(--green-900); border-radius: var(--radius-full); padding: 2px 8px; font-size: 9px; font-weight: 500; }
+  .badge.rev { background: #FFF1D6; color: #7A4B00; }
+  .tid { color: var(--obs-gray-400); font-size: 9px; margin: 4px 0 0; }
+  .row { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; margin-top: 8px; }
+  .lbl { font-weight: 600; font-size: 11px; }
+  .desc { color: var(--obs-gray-400); font-size: 11px; margin-top: 8px; min-height: 16px; }
+  .desc.tall { min-height: 44px; }
+  .msg { background: #fff; border-radius: 6px; padding: 7px 10px; font: 11px/1.45 var(--obs-font-mono); color: var(--green-950); margin-top: 8px; }
+  hr { border: 0; border-top: 1px solid var(--border); margin: 10px 0 10px; }
+  .wait { display: flex; justify-content: space-between; align-items: flex-end; }
+  .wait input { display: block; width: 160px; height: 36px; border: 0; border-radius: 6px; background: #fff; padding: 0 12px; font: 600 12px var(--font-sans); color: var(--green-950); margin-top: 6px; }
+  .wait input:focus { outline: 2px solid var(--obs-green-500); }
+  .wait input.err { outline: 2px solid var(--hot); }
+  .human { color: var(--obs-gray-400); font-size: 9px; margin-top: 4px; }
+
+  .sw { width: 40px; height: 22px; border-radius: var(--radius-full); background: var(--obs-gray-400); border: 0; position: relative; cursor: pointer; transition: background .15s; }
+  .sw::after { content: ""; position: absolute; top: 2px; left: 2px; width: 18px; height: 18px; border-radius: 50%; background: #fff; transition: transform .15s; }
+  .sw[aria-checked="true"] { background: var(--obs-green-500); }
+  .sw[aria-checked="true"]::after { transform: translateX(18px); }
+
+  .btn { height: 34px; padding: 0 16px; border-radius: var(--radius-full); border: 1px solid transparent; font-weight: 600; font-size: 12px; cursor: pointer; }
+  .btn-sm { height: 22px; padding: 0 12px; font-size: 10px; }
+  .btn-go { background: var(--obs-green-500); color: var(--green-950); }
+  .btn-gray { background: var(--obs-slate-100); color: var(--obs-gray-400); border-color: var(--obs-slate-300); }
+  .btn-gray:disabled { cursor: not-allowed; }
+  .btn-gray:not(:disabled) { color: var(--green-900); }
+  .btn-dark { background: var(--secondary); color: #fff; }
+
+  .bar { display: flex; justify-content: space-between; align-items: center; padding: 10px 16px 10px 24px; border-top: 1px solid var(--muted); }
+  .bar p { color: var(--obs-gray-400); font-size: 10px; }
+  .bar p.dirty { color: var(--green-900); font-weight: 600; }
+  .bar div { display: flex; gap: 8px; }
+
+  .scrim { position: fixed; inset: 0; background: rgba(0,37,29,.35); display: none; place-items: center; z-index: 10; }
+  .scrim.open { display: grid; }
+  .modal { width: 480px; background: #fff; border-radius: var(--radius-xl); padding: 24px; box-shadow: var(--shadow-overlay); }
+  .modal h3 { font-size: 16px; margin-bottom: 4px; }
+  .modal .tid { margin-bottom: 16px; }
+  .modal textarea { width: 100%; height: 110px; border: 1px solid var(--input); border-radius: 8px; padding: 10px; font: 12px/1.5 var(--obs-font-mono); resize: vertical; }
+  .modal .note { color: var(--muted-foreground); font-size: 11px; margin-top: 8px; }
+  .modal .acts { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; }
+
+  .toast { position: fixed; top: 84px; right: 24px; background: var(--success-subtle); border: 1px solid #CFE8C6; border-radius: 8px; padding: 12px 16px; font-size: 12px; display: none; z-index: 20; }
+  .toast.show { display: block; }
+  .empty { padding: 80px 0; text-align: center; color: var(--obs-gray-400); }
+
+  /* Panel de prueba: fuera de la UI de LaHaus. Se abre con la tecla T. */
+  .test { position: fixed; bottom: 72px; right: 16px; width: 300px; background: #111; color: #eee; border-radius: 14px; font: 13px/1.45 system-ui; display: none; z-index: 30; box-shadow: 0 8px 32px rgba(0,0,0,.3); }
+  .test.open { display: block; }
+  .test .th { display: flex; align-items: center; gap: 8px; padding: 10px 12px; cursor: pointer; user-select: none; }
+  .test .th b { font-weight: 600; flex: 1; }
+  .test .th .t { font-variant-numeric: tabular-nums; color: #00E57D; }
+  .test .th .chev { color: #888; }
+  .test .tb { padding: 0 12px 12px; display: flex; flex-direction: column; gap: 10px; }
+  .test.min .tb { display: none; }
+  .test .task { font-size: 14px; color: #fff; }
+  .test .sub { color: #999; font-size: 12px; }
+  .test textarea { width: 100%; height: 56px; border-radius: 8px; border: 0; padding: 8px; font: 13px system-ui; }
+  .test .row { display: flex; gap: 6px; flex-wrap: wrap; }
+  .test button { border: 0; border-radius: 999px; padding: 8px 14px; cursor: pointer; font: 600 13px system-ui; background: #2a2a2a; color: #eee; }
+  .test button.go { background: #00E57D; color: #00251D; }
+  .test button.link { background: none; color: #999; padding: 8px 4px; font-weight: 400; text-decoration: underline; }
+  .test .seq { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+  .test .seq button { padding: 8px 0; border-radius: 8px; }
+  .test .seqlab { display: flex; justify-content: space-between; color: #888; font-size: 11px; }
+  .test pre { white-space: pre-wrap; color: #9f9; font-size: 11px; margin: 0; max-height: 200px; overflow: auto; }
+  .testhint { position: fixed; bottom: 72px; right: 16px; font: 600 12px system-ui; color: #fff; background: #111; border: 0; border-radius: 999px; padding: 8px 14px; cursor: pointer; z-index: 29; }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="logo">LaHaus<span>ai</span></div>
+  <header class="top">
+    <nav><a href="#">Centro de soporte</a><a href="#">Performance</a><a class="on" href="#">Configuración&nbsp;⌄</a></nav>
+    <div class="right"><span class="ico">🎧</span><span class="ico">🔔</span><span class="lang"><i class="flag"></i>Español ⌄</span></div>
+  </header>
+  <aside class="side">
+    <div class="grp"><i>✦</i><span>Agente AI</span>&nbsp;⌃</div>
+    <a href="#">Conversaciones</a><a href="#">Playground</a><a href="#">Agenda</a><a href="#">Leads</a>
+    <div class="grp"><i>⚇</i><b>Productos</b></div>
+    <div class="grp"><i>⚌</i><b>Flujos de Conversación</b></div>
+    <div class="user"><span class="av">UD</span><div>LaHaus Colombia<br>Usuario demo · <u>Cerrar sesión</u></div></div>
+  </aside>
+  <main class="main">
+    <div class="subtabs" id="tabs"></div>
+    <div class="scroll" id="scroll"></div>
+    <div class="bar">
+      <p id="status">No hay cambios pendientes.</p>
+      <div>
+        <button class="btn btn-gray" id="discard" disabled>Descartar</button>
+        <button class="btn btn-gray" id="save" disabled>Guardar</button>
+        <button class="btn btn-go" id="next">Siguiente</button>
+      </div>
+    </div>
+  </main>
+</div>
+
+<div class="scrim" id="scrim">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="mtitle">
+    <h3 id="mtitle">Editar plantilla</h3>
+    <p class="tid" id="mtid"></p>
+    <textarea id="mtext"></textarea>
+    <p class="note">Las variables van entre llaves, por ejemplo {{cName}}. Al guardar, la plantilla se envía a revisión de WhatsApp.</p>
+    <div class="acts"><button class="btn btn-gray" id="mcancel" style="color:var(--green-900)">Cancelar</button><button class="btn btn-go" id="mok">Guardar plantilla</button></div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+<button class="testhint" id="testhint">▶ Prueba de usabilidad (T)</button>
+<div class="test" id="test"></div>
+
+<script>
+// [SUPUESTO] Lo que el PDF no muestra lo definimos nosotros: el modal de "Editar", que editar una
+// plantilla aprobada la devuelve a revisión, y la validación de la espera (entero de 1 a 10080 min).
+const TABS = ['Saludos', 'Reintentos', 'Recordatorios', 'Post Llamada', 'Horarios de envío'];
+const tplDesc = 'Sin plantilla asignada: el agente escribe el mensaje.';
+const SEED = {
+  first: { name: 'Primer Contacto', steps: [
+    { kind: 'template', title: 'Reintento 1', tid: 'retry_empty_user_messages_t1', status: 'Aprobada', on: true, wait: 30,
+      msg: 'Hola {{cName}}. ¿Te interesa conocer más sobre este proyecto y su opción de inversión?' },
+    { kind: 'call', title: 'Llamada automática', on: true, wait: 1440 },
+    { kind: 'template', title: 'Reintento 3', tid: 'retry_empty_user_messages_t4', status: 'Aprobada', on: true, wait: 1440,
+      msg: 'Hola {{cName}}. Hemos intentado contactarte. ¿Prefieres que esperemos unos días?' },
+    { kind: 'close', title: 'Cierre de conversación', wait: 1440 },
+  ]},
+  stopped: { name: 'Dejó de Responder', steps: [
+    { kind: 'free', title: 'Reintento 1', on: true, wait: 30 },
+    { kind: 'free', title: 'Reintento 2', on: true, wait: 30 },
+    { kind: 'free', title: 'Reintento 3', on: true, wait: 45 },
+    { kind: 'call', title: 'Llamada automática', on: true, wait: 1440 },
+    { kind: 'template', title: 'Reintento 5', tid: 'retry_has_user_messages_t6', status: 'Aprobada', on: true, wait: 1440,
+      msg: 'Hola {{cName}}. Seguimos atentos a continuar la conversación. ¿Te queda bien coordinar una llamada breve?' },
+    { kind: 'template', title: 'Reintento 6', tid: 'retry_has_user_messages_t7', status: 'Aprobada', on: true, wait: 1440,
+      msg: 'Hola {{cName}}. No hemos vuelto a saber de ti, ¿prefieres postergar por ahora?' },
+    { kind: 'close', title: 'Cierre de conversación', wait: 1440 },
+  ]},
+};
+let saved = structuredClone(SEED), draft = structuredClone(SEED), tab = 'Reintentos', editing = null;
+const $ = id => document.getElementById(id);
+const esc = s => s.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+function human(m) {
+  if (!Number.isInteger(m) || m <= 0) return '—';
+  const d = Math.floor(m / 1440), h = Math.floor(m % 1440 / 60), mm = m % 60;
+  return [d && d + ' d', h && h + ' h', mm && mm + ' min'].filter(Boolean).join(' ');
+}
+
+function card(fk, i, s) {
+  const n = `<span class="num">${i + 1}</span>`;
+  const sw = `<div class="row"><span class="lbl">Activo</span><button class="sw" role="switch" aria-checked="${s.on}" data-f="${fk}" data-i="${i}" aria-label="Activo: ${esc(s.title)}"></button><span></span></div>`;
+  let head, body;
+  if (s.kind === 'template') {
+    head = `${n}<span class="title">${esc(s.title)}</span><span class="badge ${s.status !== 'Aprobada' ? 'rev' : ''}">${s.status}</span>`;
+    body = `<p class="tid">${s.tid}</p>${sw}<div class="msg">${esc(s.msg)}</div>`;
+  } else if (s.kind === 'call') {
+    head = `${n}<span class="callico">✆</span><span class="title">${esc(s.title)}</span>`;
+    body = `${sw}<p class="desc">El agente llama al lead. Esta fila no envía mensaje de texto.</p>`;
+  } else if (s.kind === 'free') {
+    head = `${n}<span class="type">Mensaje libre</span><span class="title">${esc(s.title)}</span>`;
+    body = `${sw}<p class="desc">${tplDesc}</p>`;
+  } else {
+    head = `${n}<span class="type">Cierre</span><span class="title">${esc(s.title)}</span>`;
+    body = `<p class="desc tall">Solo cuenta el tiempo antes de cerrar la conversación. Nunca envía un mensaje.</p>`;
+  }
+  const edit = s.kind === 'template' ? `<button class="btn btn-go btn-sm" data-edit="${fk}:${i}">Editar</button>` : '';
+  return `<div class="card"><div class="head">${head}</div>${body}<hr>
+    <div class="wait"><div><span class="lbl">Espera</span>
+      <input inputmode="numeric" value="${s.wait}" data-f="${fk}" data-i="${i}" aria-label="Espera en minutos: ${esc(s.title)}">
+      <p class="human">${human(s.wait)}</p></div>${edit}</div></div>`;
+}
+
+function render() {
+  $('tabs').innerHTML = TABS.map(t => `<a class="${t === tab ? 'on' : ''}" data-tab="${t}">${t}</a>`).join('');
+  if (tab !== 'Reintentos') {
+    $('scroll').innerHTML = `<p class="empty">${tab}: fuera del alcance del caso.</p>`;
+  } else {
+    $('scroll').innerHTML = `
+      <div class="notice"><p>Dentro de la ventana de 24 horas el agente responde con texto libre y la plantilla no se usa.</p><a id="refresh">Actualizar estados</a></div>
+      <p class="hint">Apagar un reintento aplica desde el siguiente que se programe: uno ya agendado se envía de todos modos.</p>
+      <div class="cols">${Object.entries(draft).map(([fk, f]) => `
+        <section><div class="colhead">${f.name}<span class="count">${f.steps.length}</span></div>
+        <div class="list">${f.steps.map((s, i) => card(fk, i, s)).join('')}</div></section>`).join('')}
+      </div>`;
+  }
+  updateBar();
+}
+
+function changes() {
+  let n = 0;
+  for (const fk in draft) draft[fk].steps.forEach((s, i) => {
+    const o = saved[fk].steps[i];
+    if (s.on !== o.on) n++;
+    if (s.wait !== o.wait) n++;
+    if (s.msg !== o.msg) n++;
+  });
+  return n;
+}
+function invalid() { return document.querySelectorAll('.wait input.err').length > 0; }
+function updateBar() {
+  const n = changes();
+  $('status').textContent = n ? `${n} ${n === 1 ? 'cambio pendiente' : 'cambios pendientes'}.` : 'No hay cambios pendientes.';
+  $('status').className = n ? 'dirty' : '';
+  $('discard').disabled = !n;
+  $('save').disabled = !n || invalid();
+}
+function toast(t) { const el = $('toast'); el.textContent = t; el.classList.add('show'); clearTimeout(toast.h); toast.h = setTimeout(() => el.classList.remove('show'), 2400); log('toast: ' + t); }
+
+document.addEventListener('click', e => {
+  const t = e.target;
+  if (t.dataset.tab) { tab = t.dataset.tab; render(); log('tab: ' + tab); }
+  if (t.classList.contains('sw')) {
+    const s = draft[t.dataset.f].steps[t.dataset.i];
+    s.on = !s.on; t.setAttribute('aria-checked', s.on); updateBar(); log(`switch ${t.dataset.f}#${+t.dataset.i + 1} → ${s.on}`);
+  }
+  if (t.dataset.edit) {
+    const [fk, i] = t.dataset.edit.split(':'); editing = { fk, i: +i };
+    const s = draft[fk].steps[i];
+    $('mtitle').textContent = 'Editar plantilla · ' + s.title; $('mtid').textContent = s.tid; $('mtext').value = s.msg;
+    $('scrim').classList.add('open'); $('mtext').focus(); log(`editar ${fk}#${+i + 1}`);
+  }
+  if (t.id === 'refresh') { t.textContent = 'Actualizando…'; setTimeout(() => { toast('Estados actualizados.'); render(); }, 900); }
+  if (t.id === 'mcancel' || t === $('scrim')) closeModal();
+  if (t.id === 'mok') {
+    const s = draft[editing.fk].steps[editing.i], v = $('mtext').value.trim();
+    if (v && v !== s.msg) { s.msg = v; s.status = 'En revisión'; }
+    closeModal(); render();
+  }
+  if (t.id === 'save') { saved = structuredClone(draft); render(); toast('Cambios guardados.'); }
+  if (t.id === 'discard') { draft = structuredClone(saved); render(); log('descartar'); }
+  if (t.id === 'next') { tab = 'Recordatorios'; render(); log('siguiente'); }
+});
+document.addEventListener('input', e => {
+  const t = e.target; if (!t.matches('.wait input')) return;
+  const v = Number(t.value.trim()), ok = /^\d+$/.test(t.value.trim()) && v >= 1 && v <= 10080;
+  t.classList.toggle('err', !ok);
+  t.nextElementSibling.textContent = ok ? human(v) : 'Escribe minutos (1 a 10080)';
+  if (ok) draft[t.dataset.f].steps[t.dataset.i].wait = v;
+  updateBar();
+});
+document.addEventListener('change', e => { if (e.target.matches('.wait input')) log(`espera ${e.target.dataset.f}#${+e.target.dataset.i + 1} = ${e.target.value}`); });
+function closeModal() { $('scrim').classList.remove('open'); editing = null; }
+
+// ---------- Panel de prueba (no es parte de la UI) ----------
+// Las 7 tareas de tareas.md, T1 a T7 en el mismo orden. Tras cada una, SEQ de 1 a 7. "ok" revisa lo guardado; "ask" pide una respuesta escrita.
+const TASKS = [
+  { text: '¿Qué tiene que pasar para que un lead entre a "Dejó de responder" y no a "Primer contacto"?',
+    ask: true, expect: 'Que el lead haya escrito alguna vez y después deje de responder. Primer contacto = nunca escribió.' },
+  { text: 'Si un lead nuevo nunca responde, ¿cuánto tarda en cerrarse la conversación?',
+    ask: true, expect: '3 d 30 min (30 min + 1 d + 1 d + 1 d)' },
+  { text: 'En "Dejó de responder", ¿por qué los reintentos 1 a 3 son "mensaje libre" y el 5 es una plantilla?',
+    ask: true, expect: 'Los 1 a 3 caen dentro de las 24 h desde el último mensaje del lead. Después solo se pueden enviar plantillas aprobadas.' },
+  { text: 'Cambia el mensaje del Reintento 3 de "Primer contacto" y guarda.',
+    ok: () => saved.first.steps[2].msg !== SEED.first.steps[2].msg },
+  { text: 'En "Dejó de responder", haz que el Reintento 2 se active 5 horas después del paso anterior, y guarda.',
+    ok: () => saved.stopped.steps[1].wait === 300 },
+  { text: 'En "Dejó de responder", apaga la llamada automática y guarda. ¿Qué pasa con los leads que ya la tenían agendada?',
+    ask: true, ok: () => saved.stopped.steps[3].on === false, expect: 'La reciben igual: el cambio aplica a las siguientes' },
+  { text: 'Cambia la espera de cualquier paso y después deshaz ese cambio sin guardarlo.',
+    ok: () => changes() === 0 && JSON.stringify(saved) === JSON.stringify(draft) },
+];
+// Fases: intro → (tarea → seq) × N → fin
+let ti = -1, phase = 'intro', t0 = 0, results = [], events = [], timer, pending = null, minimized = false;
+function log(m) { if (phase === 'task') events.push(`${((performance.now() - t0) / 1000).toFixed(1)}s ${m}`); }
+function startTask() {
+  ti++; events = []; phase = ti < TASKS.length ? 'task' : 'end'; t0 = performance.now();
+  clearInterval(timer);
+  if (phase === 'task') timer = setInterval(() => { const x = $('tt'); if (x) x.textContent = ((performance.now() - t0) / 1000).toFixed(0) + ' s'; }, 500);
+  renderTest();
+}
+function finishTask(gaveUp) {
+  const t = TASKS[ti], a = $('tans');
+  pending = { s: ((performance.now() - t0) / 1000).toFixed(1), n: events.length, ev: events, done: t.ok ? t.ok() : null, ans: a ? a.value.trim() : '', gaveUp };
+  clearInterval(timer); phase = 'seq'; renderTest();
+}
+function renderTest() {
+  const el = $('test'), t = TASKS[ti];
+  el.classList.toggle('min', minimized);
+  const head = phase === 'intro' ? 'Prueba de usabilidad' : phase === 'end' ? 'Prueba terminada' : `Tarea ${ti + 1} de ${TASKS.length}`;
+  let body = '';
+  if (phase === 'intro') body = `<p class="task">Trabajas en el equipo comercial de una constructora. Un asistente con IA les escribe por WhatsApp a las personas interesadas en un proyecto. Si alguien deja de responder, el asistente le vuelve a escribir solo, varias veces. Esta pantalla es donde configuras esos mensajes. Hoy te toca revisarla y hacer unos ajustes.</p>
+    <p class="sub">${TASKS.length} tareas. Cada una se cronometra. Al terminar cada tarea, dinos qué tan fácil fue.</p>
+    <div class="row"><button class="go" data-a="start">Empezar la prueba</button></div>`;
+  if (phase === 'task') body = `<p class="task">${t.text}</p>
+    ${t.ask ? '<textarea id="tans" placeholder="Escribe tu respuesta"></textarea>' : ''}
+    <div class="row"><button class="go" data-a="done">Terminé</button><button class="link" data-a="giveup">No pude hacerla</button></div>`;
+  if (phase === 'seq') body = `<p class="task">¿Qué tan fácil fue esta tarea?</p>
+    <div class="seq">${[1,2,3,4,5,6,7].map(n => `<button data-seq="${n}">${n}</button>`).join('')}</div>
+    <div class="seqlab"><span>Muy difícil</span><span>Muy fácil</span></div>`;
+  if (phase === 'end') body = `<pre>${results.map((r, i) => `T${i + 1}: ${r.gaveUp ? 'no lo logró' : r.done === false ? 'no quedó guardado' : 'terminada'} · ${r.s} s · fácil ${r.seq}/7`).join('\n')}</pre>
+    <div class="row"><button class="go" data-a="copy">Copiar resultados</button></div>`;
+  el.innerHTML = `<div class="th" data-a="toggle"><b>${head}</b>${phase === 'task' ? '<span class="t" id="tt">0 s</span>' : ''}<span class="chev">${minimized ? '▴' : '▾'}</span></div><div class="tb">${body}</div>`;
+}
+document.addEventListener('keydown', e => {
+  if (e.key.toLowerCase() === 't' && !e.target.matches('input, textarea')) toggleTest();
+  if (e.key === 'Escape') closeModal();
+});
+function toggleTest() { $('test').classList.toggle('open'); $('testhint').style.display = $('test').classList.contains('open') ? 'none' : ''; renderTest(); }
+$('testhint').addEventListener('click', toggleTest);
+$('test').addEventListener('click', e => {
+  const a = e.target.closest('[data-a]')?.dataset.a, seq = e.target.dataset.seq;
+  if (a === 'toggle') { minimized = !minimized; renderTest(); }
+  if (a === 'start') startTask();
+  if (a === 'done') finishTask(false);
+  if (a === 'giveup') finishTask(true);
+  if (seq) { pending.seq = +seq; results.push(pending); pending = null; startTask(); }
+  if (a === 'copy') {
+    const txt = 'Prueba v0 (pantalla actual)\n\n' + results.map((r, i) => {
+      const t = TASKS[i];
+      const res = r.gaveUp ? 'NO LOGRADA' : r.done === null ? 'revisar respuesta' : r.done ? 'logrado' : 'NO quedó guardado';
+      return `T${i + 1} · ${res} · ${r.s} s · ${r.n} acciones · SEQ ${r.seq}/7\n  ${t.text}`
+        + (t.ask ? `\n  Respuesta: ${r.ans || '(vacía)'}\n  Esperada: ${t.expect}` : '')
+        + `\n  ${r.ev.join('\n  ')}`;
+    }).join('\n\n');
+    navigator.clipboard.writeText(txt).then(() => toast('Resultados copiados.'), () => toast('No se pudo copiar.'));
+  }
+});
+render();
+</script>
+</body>
+</html>

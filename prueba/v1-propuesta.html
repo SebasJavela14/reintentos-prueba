@@ -1,0 +1,486 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reintentos: propuesta v1</title>
+<!-- Propuesta v1 de la pantalla de Reintentos. Encargo: revision-v1.md. Tareas: tareas.md (T1 a T7).
+     Estilos: ../ds/tokens.css + ../ds/components.css (única fuente de verdad, también para Figma). Aquí solo queda el panel de prueba.
+     Todo número que se ve (acumulado, total, línea de 24 h) se calcula del SEED: no hay valores escritos a mano. -->
+<link rel="stylesheet" href="../ds/tokens.css?v=2">
+<link rel="stylesheet" href="../ds/components.css?v=5">
+<style>
+  /* Panel de prueba: fuera de la UI de LaHaus. Se abre con la tecla T. (igual que v0) */
+  .test { position: fixed; bottom: 72px; right: 16px; width: 300px; background: #111; color: #eee; border-radius: 14px; font: 13px/1.45 system-ui; display: none; z-index: 30; box-shadow: 0 8px 32px rgba(0,0,0,.3); }
+  .test.open { display: block; }
+  .test .th { display: flex; align-items: center; gap: 8px; padding: 10px 12px; cursor: pointer; user-select: none; }
+  .test .th b { font-weight: 600; flex: 1; }
+  .test .th .t { font-variant-numeric: tabular-nums; color: #00E57D; }
+  .test .th .chev { color: #888; }
+  .test .tb { padding: 0 12px 12px; display: flex; flex-direction: column; gap: 10px; }
+  .test.min .tb { display: none; }
+  .test .task { font-size: 14px; color: #fff; }
+  .test .sub { color: #999; font-size: 12px; }
+  .test textarea { width: 100%; height: 56px; border-radius: 8px; border: 0; padding: 8px; font: 13px system-ui; }
+  .test .row { display: flex; gap: 6px; flex-wrap: wrap; }
+  .test button { border: 0; border-radius: 999px; padding: 8px 14px; cursor: pointer; font: 600 13px system-ui; background: #2a2a2a; color: #eee; }
+  .test button.go { background: #00E57D; color: #00251D; }
+  .test button.link { background: none; color: #999; padding: 8px 4px; font-weight: 400; text-decoration: underline; }
+  .test .seq { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; max-width: none; }
+  .test .seq button { padding: 8px 0; border-radius: 8px; }
+  .test .seqlab { display: flex; justify-content: space-between; color: #888; font-size: 11px; }
+  .test pre { white-space: pre-wrap; color: #9f9; font-size: 11px; margin: 0; max-height: 200px; overflow: auto; }
+  .testhint { position: fixed; bottom: 80px; right: 16px; font: 600 12px system-ui; color: #fff; background: #111; border: 0; border-radius: 999px; padding: 8px 14px; cursor: pointer; z-index: 29; }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="logo">LaHaus<span>ai</span></div>
+  <header class="top">
+    <nav><a href="#">Centro de soporte</a><a href="#">Performance</a><a class="on" href="#">Configuración&nbsp;⌄</a></nav>
+    <div class="right"><span class="ico">🎧</span><span class="ico">🔔</span><span class="lang"><i class="flag"></i>Español ⌄</span></div>
+  </header>
+  <aside class="side">
+    <div class="grp"><i>✦</i><span>Agente AI</span>&nbsp;⌃</div>
+    <a href="#">Conversaciones</a><a href="#">Playground</a><a href="#">Agenda</a><a href="#">Leads</a>
+    <div class="grp"><i>⚇</i><b>Productos</b></div>
+    <div class="grp"><i>⚌</i><b>Flujos de Conversación</b></div>
+    <div class="user"><span class="av">UD</span><div>LaHaus Colombia<br>Usuario demo · <u>Cerrar sesión</u></div></div>
+  </aside>
+  <main class="main">
+    <div class="subtabs" id="tabs"></div>
+    <div class="body" id="body"></div>
+    <div class="bar" id="bar">
+      <span class="cnt" id="cnt"></span>
+      <span class="block" id="block"></span>
+      <span class="sp"></span>
+      <button class="btn btn-outline" id="discard">Descartar</button>
+      <button class="btn btn-primary" id="save">Guardar cambios</button>
+    </div>
+  </main>
+</div>
+<div class="scrim" id="scrim"><div class="modal" role="dialog" aria-modal="true" aria-labelledby="mtitle">
+  <div class="mhead"><div><h3 id="mtitle">Confirma los cambios</h3><p>Revisa lo que cambia antes de guardar.</p></div><button class="x" id="mclose" aria-label="Cerrar">✕</button></div>
+  <div class="mbody" id="changes"></div>
+  <div class="mfoot"><button class="btn btn-outline" id="mclose2">Volver</button><button class="btn btn-primary" id="msave">Confirmar</button></div>
+</div></div>
+<div class="toast" id="toast" role="status"></div>
+<button class="testhint" id="testhint">▶ Prueba de usabilidad (T)</button>
+<div class="test" id="test"></div>
+
+<script>
+// [SUPUESTOS] (a validar con LaHaus): la espera cuenta desde el paso anterior; la ventana de 24 h cuenta
+// desde el último mensaje del lead (regla de Meta); un paso apagado no suma su espera (el siguiente cuenta
+// desde el último paso que sí se envía); editar una plantilla la devuelve a revisión de Meta.
+const TABS = ['Saludos', 'Reintentos', 'Recordatorios', 'Post Llamada', 'Horarios de envío'];
+const SEED = {
+  first: { name: 'Primer contacto', steps: [
+    { kind: 'template', title: 'Reintento 1', tid: 'retry_empty_user_messages_t1', status: 'Aprobada', on: true, wait: 30,
+      msg: 'Hola {{cName}}. ¿Te interesa conocer más sobre este proyecto y su opción de inversión?' },
+    { kind: 'call', title: 'Llamada automática', on: true, wait: 1440 },
+    { kind: 'template', title: 'Reintento 3', tid: 'retry_empty_user_messages_t4', status: 'Aprobada', on: true, wait: 1440,
+      msg: 'Hola {{cName}}. Hemos intentado contactarte. ¿Prefieres que esperemos unos días?' },
+    { kind: 'close', title: 'Cierre de conversación', wait: 1440 },
+  ]},
+  stopped: { name: 'Dejó de responder', steps: [
+    { kind: 'free', title: 'Reintento 1', on: true, wait: 30 },
+    { kind: 'free', title: 'Reintento 2', on: true, wait: 30 },
+    { kind: 'free', title: 'Reintento 3', on: true, wait: 45 },
+    { kind: 'call', title: 'Llamada automática', on: true, wait: 1440 },
+    { kind: 'template', title: 'Reintento 5', tid: 'retry_has_user_messages_t6', status: 'Aprobada', on: true, wait: 1440,
+      msg: 'Hola {{cName}}. Seguimos atentos a continuar la conversación. ¿Te queda bien coordinar una llamada breve?' },
+    { kind: 'template', title: 'Reintento 6', tid: 'retry_has_user_messages_t7', status: 'Aprobada', on: true, wait: 1440,
+      msg: 'Hola {{cName}}. No hemos vuelto a saber de ti, ¿prefieres postergar por ahora?' },
+    { kind: 'close', title: 'Cierre de conversación', wait: 1440 },
+  ]},
+};
+// Lo que cambia por flujo: cuándo entra el lead y desde dónde cuenta la primera espera.
+const FLOW = {
+  first:   { when: 'el lead nunca ha escrito', trig: 'Entra un lead que nunca ha escrito', h24: false,
+             rule: '' },
+  stopped: { when: 'el lead escribió y dejó de responder', trig: 'El lead dejó de responder', h24: true,
+             rule: 'Primeras 24 h: el agente escribe con mensaje libre. Después, se envía mensaje con plantilla.' },
+};
+const TYPE = { free: 'Mensaje libre', template: 'Mensaje con plantilla', call: 'Llamada' };
+const UNITS = { min: ['minuto', 'minutos'], h: ['hora', 'horas'], d: ['día', 'días'] };
+const VARS = { cName: 'Nombre del lead' };
+const DAY = 1440, MAX = 7 * DAY;
+const UNIT = { min: 1, h: 60, d: DAY };
+// Íconos (trazo estilo Lucide). svg(nombre) los pinta a 16 px.
+const P = {
+  free: '<path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/>',
+  template: '<rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6M9 12h6M9 16h3"/>',
+  call: '<path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8 9.8a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z"/>',
+  close: '<path d="M4 22V4a1 1 0 0 1 1-1h12l-2 4 2 4H5"/>',
+  bolt: '<path d="M13 2 4 14h7l-1 8 9-12h-7z"/>',
+  clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+  check: '<circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/>',
+  hourglass: '<path d="M6 2h12M6 22h12M7 2v4l5 6 5-6V2M7 22v-4l5-6 5 6v4"/>',
+  alert: '<path d="M12 3 2 21h20z"/><path d="M12 10v5M12 18h.01"/>',
+  info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7h.01"/>',
+  pen: '<path d="M4 20h4L19 9l-4-4L4 16z"/>',
+  chev: '<path d="m6 9 6 6 6-6"/>',
+  up: '<path d="m6 15 6-6 6 6"/>',
+  plus: '<path d="M12 5v14M5 12h14"/>',
+  minus: '<path d="M5 12h14"/>',
+  repeat: '<path d="M17 2l4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="M7 22l-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/>',
+  help: '<circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6v.6M12 17h.01"/>',
+  arrow: '<path d="M5 12h14M13 6l6 6-6 6"/>',
+};
+const svg = (n, cls = 'i') => `<svg class="${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${P[n]}</svg>`;
+
+let saved = structuredClone(SEED), draft = structuredClone(SEED);
+let tab = 'Reintentos', flow = 'first', open = new Set(), bad = {}, listOpen = false;
+const $ = id => document.getElementById(id);
+const ms = (v) => parseInt(getComputedStyle(document.documentElement).getPropertyValue(v), 10) || 0; // duración de un token de movimiento
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+function human(m) {
+  if (!m) return '0 min';
+  const d = Math.floor(m / DAY), h = Math.floor(m % DAY / 60), mm = m % 60;
+  return [d && d + ' d', h && h + ' h', mm && mm + ' min'].filter(Boolean).join(' ');
+}
+// La unidad más grande que da un número entero: 1440 → 1 d, 300 → 5 h, 45 → 45 min.
+function split(m) { const u = m % DAY === 0 ? 'd' : m % 60 === 0 ? 'h' : 'min'; return { n: m / UNIT[u], u }; }
+const humanLong = m => { const v = split(m); return `${v.n} ${UNITS[v.u][v.n === 1 ? 0 : 1]}`; };
+// Solo los pasos encendidos cuentan como reintento y se numeran en orden. Un paso apagado no tiene número.
+function stepName(fk, i, data = draft) {
+  const steps = data[fk].steps, s = steps[i];
+  if (s.kind === 'close') return 'Cierre de conversación';
+  if (!s.on) return 'Reintento apagado';
+  return `Reintento ${steps.slice(0, i + 1).filter(x => x.kind !== 'close' && x.on).length}`;
+}
+
+// El corazón: tiempo acumulado de cada paso, contado desde el disparador. Un paso apagado no suma su espera.
+function timeline(fk, data = draft) {
+  const steps = data[fk].steps; let t = 0, lastOn = -1; const out = [];
+  steps.forEach((s, i) => {
+    const on = s.kind === 'close' || s.on;
+    const at = t + s.wait;
+    out.push({ at, on, from: lastOn, out24: !FLOW[fk].h24 || at > DAY });
+    if (on) { t = at; lastOn = i; }
+  });
+  return out;
+}
+const total = (fk, data = draft) => { const tl = timeline(fk, data); return tl[tl.length - 1].at; };
+// Pasos de mensaje libre que el cambio dejó fuera de las 24 h: WhatsApp no los enviaría.
+// Un mensaje libre que cae después de las 24 h necesita plantilla. No es un error: el paso pasa a plantilla
+// y el campo trae una plantilla aprobada del mismo flujo como ejemplo.
+const needsTpl = (s, x) => s.kind === 'free' && s.on && x.out24;
+function example(fk) {
+  for (const k of [fk, ...Object.keys(draft).filter(x => x !== fk)]) {
+    const i = draft[k].steps.findIndex(s => s.kind === 'template' && s.status === 'Aprobada');
+    if (i >= 0) return { msg: saved[k].steps[i].msg, who: stepName(k, i) };
+  }
+  return { msg: 'Hola {{cName}}. ', who: '' };
+}
+
+// ---------- Mensaje: texto con {{var}} ↔ HTML con chips ----------
+function msgHTML(msg, editable) {
+  return esc(msg).replace(/\{\{(\w+)\}\}/g, (_, v) => `<span class="var" data-var="${v}"${editable ? ' contenteditable="false"' : ''}>${VARS[v] || v}</span>`);
+}
+function editorText(el) {
+  let s = '';
+  el.childNodes.forEach(n => {
+    if (n.nodeType === 3) s += n.textContent;
+    else if (n.dataset && n.dataset.var) s += `{{${n.dataset.var}}}`;
+    else if (n.nodeName === 'BR') s += '\n';
+    else s += editorText(n);
+  });
+  return s;
+}
+
+// ---------- Render ----------
+function render() {
+  const focus = document.activeElement?.dataset?.key, caret = document.activeElement?.selectionStart;
+  $('tabs').innerHTML = TABS.map(t => `<a class="${t === tab ? 'on' : ''}" data-tab="${t}">${t}</a>`).join('');
+  if (tab !== 'Reintentos') { $('body').innerHTML = `<p class="empty">${tab}: fuera del alcance del caso.</p>`; updateBar(); return; }
+  const pane = document.querySelector('.pane'), keep = pane && render.flow === flow ? pane.scrollTop : 0, swap = render.flow !== undefined && render.flow !== flow;
+  const totals = Object.keys(draft).map(fk => total(fk)).join(), changedTotal = render.totals !== undefined && render.totals !== totals;
+  $('body').innerHTML = `<section class="left">${left()}</section><section class="pane"><div class="seq ${swap ? 'swap' : ''}">${right()}</div></section>`;
+  document.querySelector('.pane').scrollTop = keep;
+  if (changedTotal) document.querySelectorAll('.flow .stats').forEach((el, j) => { if (total(Object.keys(draft)[j]) !== +render.totals.split(',')[j]) el.classList.add('pulse'); });
+  render.flow = flow; render.totals = totals;
+  if (focus) { const el = document.querySelector(`[data-key="${focus}"]`); if (el) { el.focus(); try { el.setSelectionRange(caret, caret); } catch {} } }
+  updateBar();
+}
+
+function left() {
+  const cards = Object.keys(draft).map(fk => {
+    const n = draft[fk].steps.filter(s => s.kind !== 'close' && s.on).length;
+    return `<button class="flow" data-key="f:${fk}" aria-pressed="${fk === flow}" data-flow="${fk}">
+      <span class="fh">${draft[fk].name}</span>
+      <span class="when">Se activa cuando ${FLOW[fk].when}</span>
+      <span class="stats"><span>${svg('clock')}${human(total(fk))}</span><span>${svg('repeat')}${n} reintentos</span></span>
+    </button>`;
+  }).join('');
+  return `<p class="crumb">Agente AI › Configuración</p>
+    <h1>Reintentos de tu agente</h1>
+    <p class="lead">Si un lead no responde, tu agente lo vuelve a contactar. Si responde, se detiene.</p>
+    <h2>Flujos de reintento</h2>
+    <div class="flows">${cards}</div>`;
+}
+
+function right() {
+  const f = draft[flow], tl = timeline(flow), F = FLOW[flow];
+  let h = `<div class="step trig"><div class="sh"><span class="sico">${svg('bolt')}</span>
+    <span><span class="st">${F.trig}</span>${F.rule ? `<span class="ssub">${F.rule}</span>` : ''}</span></div></div>`;
+  f.steps.forEach((s, i) => { h += connector(i, s, tl) + stepCard(i, s, tl[i]); });
+  return h;
+}
+
+// Flechas: de a 5 en minutos, de a 1 en horas y días.
+const STEP = { min: 5, h: 1, d: 1 };
+const unitLabel = (u, n) => UNITS[u][+n === 1 ? 0 : 1];
+function connector(i, s, tl) {
+  const key = `${flow}:${i}`, v = bad[key] ?? split(s.wait), x = tl[i];
+  const skipped = s.kind !== 'close' && !s.on, n = +v.n, name = stepName(flow, i);
+  const why = bad[key] ? 'Escribe un número entero, de 1 minuto a 7 días.' : '';
+  return `<div class="conn"><div class="wait ${skipped ? 'dim' : ''}">${svg('hourglass')}Espera
+      <span class="num"><input inputmode="numeric" data-key="w:${key}" data-wait="${key}" value="${esc(v.n)}" class="${bad[key] ? 'err' : ''}" aria-label="Espera antes de ${name}">
+      <span class="arrows"><button data-key="u:${key}" data-step="${key}" data-d="1" ${(n + STEP[v.u]) * UNIT[v.u] > MAX ? 'disabled' : ''} aria-label="Subir">${svg('up')}</button><button data-key="d:${key}" data-step="${key}" data-d="-1" ${n - STEP[v.u] < 1 ? 'disabled' : ''} aria-label="Bajar">${svg('chev')}</button></span></span>
+      <select data-key="n:${key}" data-unit="${key}" aria-label="Unidad de la espera antes de ${name}">${Object.keys(UNIT).map(u => `<option value="${u}" ${u === v.u ? 'selected' : ''}>${unitLabel(u, n)}</option>`).join('')}</select>
+    </div>${why ? `<span class="why">${svg('alert')}${why}</span>` : ''}</div>`;
+}
+
+const tip = t => `<span class="tip" tabindex="0" aria-label="${t}">${svg('help')}<span class="tipbox" role="tooltip">${t}</span></span>`;
+const TIP_TYPE = {
+  stopped: 'Elige si este paso llama al lead o le escribe. Si escribe: en las primeras 24 h va con mensaje libre y después, con plantilla. Para cambiarlo, mueve la espera.',
+  first: 'Elige si este paso llama al lead o le escribe. Aquí todos los mensajes van con plantilla, porque el lead aún no escribe por WhatsApp.' };
+const TIP_META = 'Meta revisa cada plantilla antes de que se pueda enviar. Aprobada: se envía. En revisión: Meta la está revisando. Sin enviar: se manda a revisar cuando guardes.';
+const META_URL = 'https://developers.facebook.com/documentation/business-messaging/whatsapp/templates/template-review';
+function approvalPill(s, pending, long) {
+  const c = long ? 'pillt' : 'tag';
+  if (pending) return `<span class="${c}">${svg('pen')}Sin enviar</span>`;
+  return s.status === 'Aprobada' ? `<span class="${c} ok">${svg('check')}Aprobada</span>` : `<span class="${c} rev">${svg('hourglass')}En revisión</span>`;
+}
+function stepCard(i, s, x) {
+  const key = `${flow}:${i}`, isOpen = open.has(key), o = saved[flow].steps[i], name = stepName(flow, i);
+  if (s.kind === 'close') return `<div class="step"><div class="sh static"><span class="sico">${svg('close')}</span>
+      <span><span class="st">Cierre de conversación</span><span class="ssub">La secuencia termina</span></span><span></span></div></div>`;
+  const isNew = needsTpl(s, x), k = isNew ? 'template' : s.kind;
+  const edited = s.kind === 'template' && s.msg !== o.msg;
+  const ex = isNew && !s.msg ? example(flow) : null;
+  const icon = s.kind === 'call' ? 'call' : 'free'; // libre y plantilla son mensaje de texto: mismo ícono
+  const head = s.on
+    ? `<span class="tag">${TYPE[k]}${k === 'template' ? approvalPill(s, isNew || edited) : ''}</span>
+       <span class="tag"><span class="dot"></span>Encendido</span>`
+    : `<span class="tag">${TYPE[k]} · se salta</span>`;
+  let body = `<div class="line"><span class="lbl">Estado</span><span class="r">${s.on ? 'Encendido' : 'Apagado'}<button class="sw" data-key="s:${key}" role="switch" aria-checked="${s.on}" data-sw="${key}" aria-label="${name}: encendido"></button></span></div>`;
+  if (s.on) {
+    body += `<div class="line"><span class="lbl">Tipo de reintento${tip(TIP_TYPE[flow])}</span><span class="seg" role="group" aria-label="Tipo de reintento">
+      <button data-key="m:${key}" data-type="${key}:msg" aria-pressed="${k !== 'call'}">${svg('free')}Mensaje</button><button data-key="c:${key}" data-type="${key}:call" aria-pressed="${k === 'call'}">${svg('call')}Llamada</button></span></div>`;
+    if (k === 'template') body += `<div class="line"><span class="lbl">Aprobación de Meta${tip(TIP_META)}</span>${approvalPill(s, isNew || edited, true)}</div>`;
+    if (k === 'free') body += `<div class="field"><span class="lbl">Mensaje</span><span class="desc">Mensaje libre: el agente lo escribe según la conversación.</span></div>`;
+    if (k === 'template') body += `<div class="field ${edited || isNew ? 'edited' : ''}"><span class="lbl">Mensaje con plantilla</span>
+      <div class="msgbox ${ex ? 'ex' : ''}"><div class="msg" contenteditable="true" data-msg="${key}" role="textbox" aria-multiline="true" aria-label="Mensaje de ${name}" ${ex ? `data-ph="Ej.: ${esc(short(ex.msg, 200))}"` : ''}>${s.msg ? msgHTML(s.msg, true) : ''}</div>
+        ${ex ? `<button class="inbtn" data-useex="${key}">Usar ejemplo</button>` : ''}</div>
+      <div class="hintline metanote">${svg('info')}<div>Al guardar, Meta revisa la plantilla. <details><summary>Ver condiciones</summary><ul>
+        <li>Meta revisa la plantilla antes de que se pueda enviar.</li>
+        <li>Puedes editar una plantilla 1 vez al día y hasta 10 veces al mes.</li>
+        <li><a href="${META_URL}" target="_blank" rel="noopener">Conoce más sobre la revisión de Meta</a></li></ul></details></div></div></div>`;
+  }
+  return `<div class="step ${isOpen ? 'open' : ''} ${s.on ? '' : 'off'}">
+    <button class="sh" data-key="t:${key}" data-toggle="${key}" aria-expanded="${isOpen}"><span class="sico">${svg(icon)}</span>
+      <span><span class="st">${name}</span><span class="ssub">${head}</span></span>
+      <span class="chev">${svg('chev')}</span></button>
+    <div class="sbody">${body}</div></div>`;
+}
+
+// ---------- Cambios: por flujo, por paso, antes → después (tabla) ----------
+const short = (m, n = 32) => { const t = (m || '').replace(/\{\{(\w+)\}\}/g, (_, v) => VARS[v] || v); return t.length > n ? t.slice(0, n) + '…' : t; };
+const typeOf = (s, x) => s.kind === 'call' ? 'Llamada' : needsTpl(s, x) ? 'Mensaje con plantilla' : TYPE[s.kind];
+function changeGroups() {
+  return Object.keys(draft).map(fk => {
+    const steps = [];
+    draft[fk].steps.forEach((s, i) => {
+      const o = saved[fk].steps[i], lines = [];
+      if (s.wait !== o.wait) lines.push({ k: 'Espera', from: humanLong(o.wait), to: humanLong(s.wait) });
+      if (s.on !== o.on) lines.push({ k: 'Estado', from: o.on ? 'Encendido' : 'Apagado', to: s.on ? 'Encendido' : 'Apagado', off: !s.on });
+      const tl = timeline(fk)[i], tl0 = timeline(fk, saved)[i];
+      if (s.kind !== 'close' && typeOf(s, tl) !== typeOf(o, tl0)) lines.push({ k: 'Tipo', from: typeOf(o, tl0), to: typeOf(s, tl) });
+      if (needsTpl(s, tl) && !needsTpl(o, tl0)) lines.push({ k: 'Mensaje', from: '—', to: s.msg ? short(s.msg) : 'Falta escribirla', missing: !s.msg, meta: true });
+      else if (s.kind === 'template' && s.msg !== o.msg) lines.push({ k: 'Mensaje', from: short(o.msg), to: short(s.msg), meta: true });
+      // El paso se nombra como estaba guardado: así no se pierde cuál cambió aunque la numeración se mueva.
+      if (lines.length) steps.push({ who: stepName(fk, i, saved), lines });
+    });
+    return { fk, name: draft[fk].name, steps, t0: total(fk, saved), t1: total(fk) };
+  }).filter(g => g.steps.length);
+}
+const changes = () => changeGroups().reduce((n, g) => n + g.steps.reduce((m, s) => m + s.lines.filter(l => !l.missing).length, 0), 0);
+const missing = () => changeGroups().flatMap(g => g.steps.filter(s => s.lines.some(l => l.missing)).map(s => s.who));
+function changesHTML(groups) {
+  const off = groups.flatMap(g => g.steps.filter(s => s.lines.some(l => l.off)).map(s => s.who));
+  const meta = groups.some(g => g.steps.some(s => s.lines.some(l => l.meta)));
+  return groups.map(g => `<section class="cgroup"><h4>${g.name}</h4>
+    <table class="ctable"><colgroup><col><col><col><col><col></colgroup><thead><tr><th>Reintento</th><th>Cambio</th><th>Antes</th><th></th><th>Después</th></tr></thead><tbody>
+    ${g.t0 !== g.t1 ? `<tr class="sum"><td class="who">Todo el flujo</td><td>Tiempo total</td><td><span class="val">${human(g.t0)}</span></td><td class="arr">${svg('arrow')}</td><td><span class="val new">${human(g.t1)}</span></td></tr>` : ''}
+    ${g.steps.map(s => s.lines.map((l, j) => `<tr>${j === 0 ? `<td class="who" rowspan="${s.lines.length}">${s.who}</td>` : ''}<td>${l.k}</td><td><span class="val">${l.from}</span></td><td class="arr">${svg('arrow')}</td><td><span class="val new">${l.to}</span></td></tr>`).join('')).join('')}
+    </tbody></table></section>`).join('')
+    + ((off.length || meta) ? `<div class="cnotes">
+      ${off.length ? `<p class="note info">${svg('info')}<span>Apagar aplica desde el próximo envío que se programe. Los leads que ya tenían agendado ${off.join(', ')} igual lo reciben.</span></p>` : ''}
+      ${meta ? `<p class="note warn">${svg('hourglass')}<span>Los mensajes con plantilla nuevos o editados pasan a revisión de Meta al guardar.</span></p>` : ''}</div>` : '');
+}
+function updateBar() {
+  const groups = changeGroups(), n = changes(), hasBad = Object.keys(bad).length, miss = missing();
+  $('bar').classList.toggle('show', n > 0 || hasBad > 0);
+  $('cnt').textContent = `${n} ${n === 1 ? 'cambio realizado' : 'cambios realizados'}`;
+  $('block').textContent = hasBad ? 'Corrige la espera marcada para guardar.' : miss.length ? `Escribe la plantilla de ${miss.join(', ')} para guardar.` : '';
+  $('save').disabled = $('msave').disabled = !n || hasBad > 0 || miss.length > 0;
+  $('scrim').classList.toggle('show', listOpen && n > 0);
+  $('changes').innerHTML = changesHTML(groups);
+}
+let undo = null;
+function toast(t, action) { const el = $('toast'); el.innerHTML = esc(t) + (action ? ` <button class="inbtn" data-undo>${action}</button>` : ''); el.classList.add('show'); clearTimeout(toast.h); toast.h = setTimeout(() => el.classList.remove('show'), action ? 6000 : 3200); log('toast: ' + t); }
+const stepOf = key => { const [fk, i] = key.split(':'); return draft[fk].steps[+i]; };
+
+function setWait(key, n, u) {
+  const ok = /^\d+$/.test(String(n).trim()) && +n >= 1 && +n * UNIT[u] <= MAX;
+  if (ok) { delete bad[key]; stepOf(key).wait = +n * UNIT[u]; }
+  else bad[key] = { n, u };
+  render();
+}
+
+document.addEventListener('click', e => {
+  if (e.target.closest('details, summary, a')) return;
+  const t = e.target.closest('[data-tab],[data-flow],[data-toggle],[data-sw],[data-step],[data-useex],[data-type],[data-undo],#save,#discard,#msave,#mclose,#mclose2,#scrim');
+  if (!t) return;
+  if (t.id === 'scrim' && e.target !== t) return; // clic dentro del modal
+  const d = t.dataset;
+  if (d.tab) { tab = d.tab; render(); log('pestaña: ' + tab); }
+  if (d.flow) { flow = d.flow; render(); log('flujo: ' + draft[flow].name); }
+  // Abrir o cerrar un card no cambia datos: se cambia la clase en el mismo elemento, así el chevron gira y el detalle
+  // entra una sola vez (no se repite en cada re-render).
+  if (d.toggle) { const card = t.closest('.step'), isOpen = !open.has(d.toggle);
+    isOpen ? open.add(d.toggle) : open.delete(d.toggle);
+    card.classList.toggle('open', isOpen); card.classList.toggle('opening', isOpen); t.setAttribute('aria-expanded', isOpen);
+    card.addEventListener('animationend', () => card.classList.remove('opening'), { once: true });
+    log(`${isOpen ? 'abre' : 'cierra'} ${d.toggle}`); }
+  if (d.step) { const cur = bad[d.step] ?? split(stepOf(d.step).wait); setWait(d.step, +cur.n + +d.d * STEP[cur.u], cur.u); log(`flecha ${d.step} ${d.d > 0 ? '↑' : '↓'}`); }
+  // El switch se mueve primero en el mismo elemento y después se re-dibuja la pantalla (si no, el movimiento no se ve).
+  if (d.sw) { const s = stepOf(d.sw); s.on = !s.on; t.setAttribute('aria-checked', s.on); setTimeout(render, ms('--duration-fast')); log(`estado ${d.sw} → ${s.on ? 'encendido' : 'apagado'}`); }
+  if (t.id === 'save' && !t.disabled) { listOpen = true; updateBar(); $('msave').focus(); log('confirmar cambios'); return; }
+  if (t.id === 'mclose' || t.id === 'mclose2' || t.id === 'scrim') { listOpen = false; updateBar(); }
+  if (d.type) { const [fk, i, to] = d.type.split(':'), st = draft[fk].steps[+i];
+    if (to === 'call' && st.kind !== 'call') { st.prev = { kind: st.kind, msg: st.msg, status: st.status, tid: st.tid }; ['msg', 'status', 'tid'].forEach(f => delete st[f]); st.kind = 'call'; }
+    if (to === 'msg' && st.kind === 'call') { if (st.prev) { Object.assign(st, st.prev); Object.keys(st).forEach(f => st[f] === undefined && delete st[f]); } else st.kind = 'free'; delete st.prev; }
+    t.parentElement.querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', x === t)); setTimeout(render, ms('--duration-fast')); log(`tipo ${fk}#${+i + 1} → ${to}`); }
+  if (d.useex) { stepOf(d.useex).msg = example(d.useex.split(':')[0]).msg; render(); log('usar ejemplo ' + d.useex); }
+  if (t.id === 'discard') { const n = changes(); undo = structuredClone(draft); draft = structuredClone(saved); bad = {}; listOpen = false; render(); log('descartar');
+    toast(`Descartaste ${n} ${n === 1 ? 'cambio' : 'cambios'}.`, 'Deshacer'); }
+  if ('undo' in d && undo) { draft = undo; undo = null; $('toast').classList.remove('show'); render(); log('deshacer descarte'); }
+  if (t.id === 'msave' && !t.disabled) {
+    const off = changeGroups().flatMap(g => g.steps.filter(s => s.lines.some(l => l.off)).map(s => s.who));
+    let rev = 0;
+    for (const fk in draft) {
+      const tl = timeline(fk), ex = example(fk);
+      draft[fk].steps.forEach((s, i) => {
+        delete s.prev;
+        if (needsTpl(s, tl[i])) { s.kind = 'template'; s.msg = s.msg ?? ex.msg; s.status = 'En revisión'; rev++; }
+        else if (s.kind === 'template' && s.msg !== saved[fk].steps[i].msg) { s.status = 'En revisión'; rev++; }
+      });
+    }
+    saved = structuredClone(draft); listOpen = false; render();
+    toast(['Cambios guardados.', rev ? `Meta está revisando ${rev === 1 ? '1 mensaje con plantilla' : rev + ' mensajes con plantilla'}.` : '',
+      off.length ? `Los leads que ya tenían agendado ${off.join(', ')} igual lo reciben.` : ''].filter(Boolean).join(' '));
+  }
+});
+document.addEventListener('input', e => {
+  const k = e.target.dataset.wait;
+  if (k) return setWait(k, e.target.value, (bad[k] ?? split(stepOf(k).wait)).u);
+  const m = e.target.closest('[data-msg]');
+  if (m) { // el mensaje entra al panel de cambios mientras se escribe, sin "Listo"
+    const s = stepOf(m.dataset.msg), v = editorText(m).replace(/ /g, ' ').trim();
+    if (v) s.msg = v; else if (s.kind === 'free') delete s.msg; m.closest('.field').classList.add('edited'); updateBar();
+  }
+});
+document.addEventListener('focusout', e => { if (e.target.dataset?.msg) log('mensaje editado ' + e.target.dataset.msg); });
+document.addEventListener('change', e => {
+  const k = e.target.dataset.unit, w = e.target.dataset.wait;
+  if (k) { const cur = bad[k] ?? split(stepOf(k).wait); setWait(k, cur.n, e.target.value); log(`unidad ${k} = ${e.target.value}`); }
+  if (w) log(`espera ${w} = ${e.target.value}`);
+});
+
+// ---------- Panel de prueba (no es parte de la UI) ----------
+// Las 7 tareas de tareas.md, T1 a T7 en el mismo orden que v0. Tras cada una, SEQ de 1 a 7.
+const TASKS = [
+  { text: '¿Qué tiene que pasar para que un lead entre a "Dejó de responder" y no a "Primer contacto"?',
+    ask: true, expect: 'Que el lead haya escrito alguna vez y después deje de responder. Primer contacto = nunca escribió.' },
+  { text: 'Si un lead nuevo nunca responde, ¿cuánto tarda en cerrarse la conversación?',
+    ask: true, expect: '3 d 30 min (30 min + 1 d + 1 d + 1 d)' },
+  { text: 'En "Dejó de responder", ¿por qué los reintentos 1 a 3 son "mensaje libre" y el 5 es una plantilla?',
+    ask: true, expect: 'Los 1 a 3 caen dentro de las 24 h desde el último mensaje del lead. Después solo se pueden enviar plantillas aprobadas.' },
+  { text: 'Cambia el mensaje del Reintento 3 de "Primer contacto" y guarda.',
+    ok: () => saved.first.steps[2].msg !== SEED.first.steps[2].msg },
+  { text: 'En "Dejó de responder", haz que el Reintento 2 se active 5 horas después del paso anterior, y guarda.',
+    ok: () => saved.stopped.steps[1].wait === 300 },
+  { text: 'En "Dejó de responder", apaga la llamada automática y guarda. ¿Qué pasa con los leads que ya la tenían agendada?',
+    ask: true, ok: () => saved.stopped.steps[3].on === false, expect: 'La reciben igual: el cambio aplica a las siguientes' },
+  { text: 'Cambia la espera de cualquier paso y después deshaz ese cambio sin guardarlo.',
+    ok: () => changes() === 0 && JSON.stringify(saved) === JSON.stringify(draft) },
+];
+let ti = -1, phase = 'intro', t0 = 0, results = [], events = [], timer, pending = null, minimized = false;
+function log(m) { if (phase === 'task') events.push(`${((performance.now() - t0) / 1000).toFixed(1)}s ${m}`); }
+function startTask() {
+  ti++; events = []; phase = ti < TASKS.length ? 'task' : 'end'; t0 = performance.now();
+  clearInterval(timer);
+  if (phase === 'task') timer = setInterval(() => { const x = $('tt'); if (x) x.textContent = ((performance.now() - t0) / 1000).toFixed(0) + ' s'; }, 500);
+  renderTest();
+}
+function finishTask(gaveUp) {
+  const t = TASKS[ti], a = $('tans');
+  pending = { s: ((performance.now() - t0) / 1000).toFixed(1), n: events.length, ev: events, done: t.ok ? t.ok() : null, ans: a ? a.value.trim() : '', gaveUp };
+  clearInterval(timer); phase = 'seq'; renderTest();
+}
+function renderTest() {
+  const el = $('test'), t = TASKS[ti];
+  el.classList.toggle('min', minimized);
+  const head = phase === 'intro' ? 'Prueba v1 (propuesta)' : phase === 'end' ? 'Prueba terminada' : `Tarea ${ti + 1} de ${TASKS.length}`;
+  let body = '';
+  if (phase === 'intro') body = `<p class="task">Trabajas en el equipo comercial de una constructora. Un asistente con IA les escribe por WhatsApp a las personas interesadas en un proyecto. Si alguien deja de responder, el asistente le vuelve a escribir solo, varias veces. Esta pantalla es donde configuras esos mensajes. Hoy te toca revisarla y hacer unos ajustes.</p>
+    <p class="sub">${TASKS.length} tareas. Cada una se cronometra. Al terminar cada tarea, dinos qué tan fácil fue.</p>
+    <div class="row"><button class="go" data-a="start">Empezar la prueba</button></div>`;
+  if (phase === 'task') body = `<p class="task">${t.text}</p>
+    ${t.ask ? '<textarea id="tans" placeholder="Escribe tu respuesta"></textarea>' : ''}
+    <div class="row"><button class="go" data-a="done">Terminé</button><button class="link" data-a="giveup">No pude hacerla</button></div>`;
+  if (phase === 'seq') body = `<p class="task">¿Qué tan fácil fue esta tarea?</p>
+    <div class="seq">${[1,2,3,4,5,6,7].map(n => `<button data-seq="${n}">${n}</button>`).join('')}</div>
+    <div class="seqlab"><span>Muy difícil</span><span>Muy fácil</span></div>`;
+  if (phase === 'end') body = `<pre>${results.map((r, i) => `T${i + 1}: ${r.gaveUp ? 'no lo logró' : r.done === false ? 'no quedó guardado' : 'terminada'} · ${r.s} s · fácil ${r.seq}/7`).join('\n')}</pre>
+    <div class="row"><button class="go" data-a="copy">Copiar resultados</button></div>`;
+  el.innerHTML = `<div class="th" data-a="toggle"><b>${head}</b>${phase === 'task' ? '<span class="t" id="tt">0 s</span>' : ''}<span class="chev">${minimized ? '▴' : '▾'}</span></div><div class="tb">${body}</div>`;
+}
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && listOpen) { listOpen = false; updateBar(); }
+  if (e.key.toLowerCase() === 't' && !(e.target.matches && e.target.matches('input, textarea, select')) && !e.target.isContentEditable) toggleTest();
+});
+function toggleTest() { $('test').classList.toggle('open'); $('testhint').style.display = $('test').classList.contains('open') ? 'none' : ''; renderTest(); }
+$('testhint').addEventListener('click', toggleTest);
+$('test').addEventListener('click', e => {
+  const a = e.target.closest('[data-a]')?.dataset.a, seq = e.target.dataset.seq;
+  if (a === 'toggle') { minimized = !minimized; renderTest(); }
+  if (a === 'start') startTask();
+  if (a === 'done') finishTask(false);
+  if (a === 'giveup') finishTask(true);
+  if (seq) { pending.seq = +seq; results.push(pending); pending = null; startTask(); }
+  if (a === 'copy') {
+    const txt = 'Prueba v1 (propuesta)\n\n' + results.map((r, i) => {
+      const t = TASKS[i];
+      const res = r.gaveUp ? 'NO LOGRADA' : r.done === null ? 'revisar respuesta' : r.done ? 'logrado' : 'NO quedó guardado';
+      return `T${i + 1} · ${res} · ${r.s} s · ${r.n} acciones · SEQ ${r.seq}/7\n  ${t.text}`
+        + (t.ask ? `\n  Respuesta: ${r.ans || '(vacía)'}\n  Esperada: ${t.expect}` : '')
+        + `\n  ${r.ev.join('\n  ')}`;
+    }).join('\n\n');
+    navigator.clipboard.writeText(txt).then(() => toast('Resultados copiados.'), () => toast('No se pudo copiar.'));
+  }
+});
+// Enlace directo a un estado, para capturas: #stopped&open=4 (flujo y paso abierto, desde 1)
+{ const h = new URLSearchParams(location.hash.slice(1)); for (const k of h.keys()) if (draft[k]) flow = k;
+  (h.get('open') || '').split(',').filter(Boolean).forEach(n => open.add(`${flow}:${n - 1}`));
+  // #demo: estado con cambios, para capturas (espera de 1 d en el paso 3, llamada apagada, plantilla nueva)
+  if (h.has('demo')) { const st = draft.stopped.steps; st[2].wait = DAY; st[3].on = false;
+    draft.first.steps[2].msg += ' Te escribo de nuevo.'; listOpen = h.get('demo') === 'modal'; } }
+render();
+</script>
+</body>
+</html>
