@@ -90,12 +90,12 @@
   .conn::before { content: ""; position: absolute; top: 0; bottom: 0; left: 50%; border-left: 1.5px solid var(--input); }
   .wait { position: relative; display: flex; align-items: center; gap: var(--spacing-1); background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-full); padding: var(--spacing-1) var(--spacing-1) var(--spacing-1) var(--spacing-3); color: var(--muted-foreground); }
   .num { display: flex; align-items: center; gap: 2px; }
-  .wait input { width: 24px; margin-left: var(--spacing-1); height: 28px; border: 0; background: none; text-align: right; font-weight: var(--font-weight-strong); color: var(--foreground); }
+  .wait input { width: 28px; margin-left: var(--spacing-1); height: 28px; border: 0; background: none; text-align: right; font-weight: var(--font-weight-strong); color: var(--foreground); }
   .arrows { display: flex; flex-direction: column; background: var(--muted); border-radius: var(--radius-sm); }
-  .arrows button { width: 20px; height: 14px; border: 0; background: none; display: grid; place-items: center; color: var(--foreground); border-radius: var(--radius-sm); }
+  .arrows button { width: 24px; height: 16px; border: 0; background: none; display: grid; place-items: center; color: var(--foreground); border-radius: var(--radius-sm); }
   .arrows button:hover:not(:disabled) { background: var(--accent); }
   .arrows button:disabled { color: var(--disabled-foreground); cursor: not-allowed; }
-  .arrows .i { width: 12px; height: 12px; }
+  .arrows .i { width: 14px; height: 14px; }
   .wait select { width: 88px; text-align: right; text-align-last: right; height: 28px; border: 0; border-radius: var(--radius-full); padding: 0 var(--spacing-2); background: none; color: var(--foreground); font-weight: var(--font-weight-strong); cursor: pointer; }
   .wait select:hover { background: var(--muted); }
   .wait input:focus, .wait select:focus { outline: 2px solid var(--ring); border-radius: var(--radius-sm); }
@@ -113,6 +113,7 @@
   .trig .sico { background: var(--secondary); color: var(--secondary-foreground); }
   .st { font-weight: var(--font-weight-strong); display: block; }
   .ssub { display: flex; align-items: center; gap: var(--spacing-3); flex-wrap: wrap; color: var(--muted-foreground); font: var(--type-caption); margin-top: var(--spacing-1); }
+  .ssub.rule { display: block; }
   .tag { display: inline-flex; align-items: center; gap: var(--spacing-1); }
   .tag .i { width: 14px; height: 14px; }
   .tag .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--success); }
@@ -139,8 +140,8 @@
   .pillt.ok { background: var(--success-subtle); color: var(--success-foreground); }
   .pillt.rev { background: var(--warning-subtle); color: var(--warning); }
   .pillt .i { width: 14px; height: 14px; }
-  .sw { width: 36px; height: 20px; border-radius: var(--radius-full); background: var(--input); border: 0; position: relative; transition: background-color var(--duration-fast) ease; flex: none; }
-  .sw::after { content: ""; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: var(--card); transition: transform var(--duration-fast) var(--ease-out); box-shadow: var(--shadow-raised); }
+  .sw { width: 40px; height: 24px; border-radius: var(--radius-full); background: var(--input); border: 0; position: relative; transition: background-color var(--duration-fast) ease; flex: none; }
+  .sw::after { content: ""; position: absolute; top: 2px; left: 2px; width: 20px; height: 20px; border-radius: 50%; background: var(--card); transition: transform var(--duration-fast) var(--ease-out); box-shadow: var(--shadow-raised); }
   .sw[aria-checked="true"] { background: var(--secondary); }
   .sw[aria-checked="true"]::after { transform: translateX(16px); }
   .note { display: flex; gap: var(--spacing-2); border-radius: var(--radius-sm); padding: var(--spacing-3); font: var(--type-caption); }
@@ -217,8 +218,8 @@
   .cnotes { display: grid; gap: var(--spacing-2); }
 
   /* Ayuda "?" con tooltip */
-  .tip { position: relative; display: inline-grid; place-items: center; width: 16px; height: 16px; color: var(--muted-foreground); cursor: help; vertical-align: middle; }
-  .tip .i { width: 14px; height: 14px; }
+  .tip { position: relative; display: inline-grid; place-items: center; width: 24px; height: 24px; margin: -4px 0; color: var(--muted-foreground); cursor: help; vertical-align: middle; }
+  .tip .i { width: 16px; height: 16px; }
   .tipbox { position: absolute; left: 50%; bottom: calc(100% + 8px); transform: translateX(-50%); width: 260px; background: var(--secondary); color: var(--secondary-foreground); font: var(--type-caption); font-weight: var(--font-weight-regular); border-radius: var(--radius-sm); padding: var(--spacing-2) var(--spacing-3); box-shadow: var(--shadow-overlay); opacity: 0; pointer-events: none; z-index: 10; }
   .tip:hover .tipbox, .tip:focus .tipbox { opacity: 1; }
   .msg:empty::before { content: attr(data-ph); color: var(--muted-foreground); }

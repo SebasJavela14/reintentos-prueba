@@ -8,7 +8,7 @@
      Estilos: ../ds/tokens.css + ../ds/components.css (única fuente de verdad, también para Figma). Aquí solo queda el panel de prueba.
      Todo número que se ve (acumulado, total, línea de 24 h) se calcula del SEED: no hay valores escritos a mano. -->
 <link rel="stylesheet" href="../ds/tokens.css?v=2">
-<link rel="stylesheet" href="../ds/components.css?v=5">
+<link rel="stylesheet" href="../ds/components.css?v=6">
 <style>
   /* Panel de prueba: fuera de la UI de LaHaus. Se abre con la tecla T. (igual que v0) */
   .test { position: fixed; bottom: 72px; right: 16px; width: 300px; background: #111; color: #eee; border-radius: 14px; font: 13px/1.45 system-ui; display: none; z-index: 30; box-shadow: 0 8px 32px rgba(0,0,0,.3); }
@@ -28,7 +28,7 @@
   .test button.link { background: none; color: #999; padding: 8px 4px; font-weight: 400; text-decoration: underline; }
   .test .seq { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; max-width: none; }
   .test .seq button { padding: 8px 0; border-radius: 8px; }
-  .test .seqlab { display: flex; justify-content: space-between; color: #888; font-size: 11px; }
+  .test .seqlab { display: flex; justify-content: space-between; color: #999; font-size: 12px; }
   .test pre { white-space: pre-wrap; color: #9f9; font-size: 11px; margin: 0; max-height: 200px; overflow: auto; }
   .testhint { position: fixed; bottom: 80px; right: 16px; font: 600 12px system-ui; color: #fff; background: #111; border: 0; border-radius: 999px; padding: 8px 14px; cursor: pointer; z-index: 29; }
 </style>
@@ -99,7 +99,7 @@ const FLOW = {
   first:   { when: 'el lead nunca ha escrito', trig: 'Entra un lead que nunca ha escrito', h24: false,
              rule: '' },
   stopped: { when: 'el lead escribió y dejó de responder', trig: 'El lead dejó de responder', h24: true,
-             rule: 'Primeras 24 h: el agente escribe con mensaje libre. Después, se envía mensaje con plantilla.' },
+             rule: 'Primeras 24 h: mensaje libre.<br>Después: mensaje con plantilla.' },
 };
 const TYPE = { free: 'Mensaje libre', template: 'Mensaje con plantilla', call: 'Llamada' };
 const UNITS = { min: ['minuto', 'minutos'], h: ['hora', 'horas'], d: ['día', 'días'] };
@@ -224,7 +224,7 @@ function left() {
 function right() {
   const f = draft[flow], tl = timeline(flow), F = FLOW[flow];
   let h = `<div class="step trig"><div class="sh"><span class="sico">${svg('bolt')}</span>
-    <span><span class="st">${F.trig}</span>${F.rule ? `<span class="ssub">${F.rule}</span>` : ''}</span></div></div>`;
+    <span><span class="st">${F.trig}</span>${F.rule ? `<span class="ssub rule">${F.rule}</span>` : ''}</span></div></div>`;
   f.steps.forEach((s, i) => { h += connector(i, s, tl) + stepCard(i, s, tl[i]); });
   return h;
 }
@@ -243,11 +243,11 @@ function connector(i, s, tl) {
     </div>${why ? `<span class="why">${svg('alert')}${why}</span>` : ''}</div>`;
 }
 
-const tip = t => `<span class="tip" tabindex="0" aria-label="${t}">${svg('help')}<span class="tipbox" role="tooltip">${t}</span></span>`;
+const tip = t => `<span class="tip" tabindex="0" aria-label="${t.replace(/\n/g, ' ')}">${svg('help')}<span class="tipbox" role="tooltip">${t.replace(/\n/g, '<br>')}</span></span>`;
 const TIP_TYPE = {
-  stopped: 'Elige si este paso llama al lead o le escribe. Si escribe: en las primeras 24 h va con mensaje libre y después, con plantilla. Para cambiarlo, mueve la espera.',
-  first: 'Elige si este paso llama al lead o le escribe. Aquí todos los mensajes van con plantilla, porque el lead aún no escribe por WhatsApp.' };
-const TIP_META = 'Meta revisa cada plantilla antes de que se pueda enviar. Aprobada: se envía. En revisión: Meta la está revisando. Sin enviar: se manda a revisar cuando guardes.';
+  stopped: 'Elige si este paso llama al lead o le escribe.\nPrimeras 24 h: mensaje libre.\nDespués: mensaje con plantilla.\nPara cambiarlo, mueve la espera.',
+  first: 'Elige si este paso llama al lead o le escribe.\nAquí todos los mensajes van con plantilla, porque el lead todavía no ha escrito por WhatsApp.' };
+const TIP_META = 'Meta revisa cada plantilla antes de enviarla.\nAprobada: ya se puede enviar.\nEn revisión: Meta la está revisando.\nSin enviar: se manda a revisar cuando guardes.';
 const META_URL = 'https://developers.facebook.com/documentation/business-messaging/whatsapp/templates/template-review';
 function approvalPill(s, pending, long) {
   const c = long ? 'pillt' : 'tag';
@@ -265,7 +265,7 @@ function stepCard(i, s, x) {
   const head = s.on
     ? `<span class="tag">${TYPE[k]}${k === 'template' ? approvalPill(s, isNew || edited) : ''}</span>
        <span class="tag"><span class="dot"></span>Encendido</span>`
-    : `<span class="tag">${TYPE[k]} · se salta</span>`;
+    : `<span class="tag">Apagado · no se envía</span>`;
   let body = `<div class="line"><span class="lbl">Estado</span><span class="r">${s.on ? 'Encendido' : 'Apagado'}<button class="sw" data-key="s:${key}" role="switch" aria-checked="${s.on}" data-sw="${key}" aria-label="${name}: encendido"></button></span></div>`;
   if (s.on) {
     body += `<div class="line"><span class="lbl">Tipo de reintento${tip(TIP_TYPE[flow])}</span><span class="seg" role="group" aria-label="Tipo de reintento">
@@ -276,7 +276,6 @@ function stepCard(i, s, x) {
       <div class="msgbox ${ex ? 'ex' : ''}"><div class="msg" contenteditable="true" data-msg="${key}" role="textbox" aria-multiline="true" aria-label="Mensaje de ${name}" ${ex ? `data-ph="Ej.: ${esc(short(ex.msg, 200))}"` : ''}>${s.msg ? msgHTML(s.msg, true) : ''}</div>
         ${ex ? `<button class="inbtn" data-useex="${key}">Usar ejemplo</button>` : ''}</div>
       <div class="hintline metanote">${svg('info')}<div>Al guardar, Meta revisa la plantilla. <details><summary>Ver condiciones</summary><ul>
-        <li>Meta revisa la plantilla antes de que se pueda enviar.</li>
         <li>Puedes editar una plantilla 1 vez al día y hasta 10 veces al mes.</li>
         <li><a href="${META_URL}" target="_blank" rel="noopener">Conoce más sobre la revisión de Meta</a></li></ul></details></div></div></div>`;
   }
@@ -318,8 +317,8 @@ function changesHTML(groups) {
     ${g.steps.map(s => s.lines.map((l, j) => `<tr>${j === 0 ? `<td class="who" rowspan="${s.lines.length}">${s.who}</td>` : ''}<td>${l.k}</td><td><span class="val">${l.from}</span></td><td class="arr">${svg('arrow')}</td><td><span class="val new">${l.to}</span></td></tr>`).join('')).join('')}
     </tbody></table></section>`).join('')
     + ((off.length || meta) ? `<div class="cnotes">
-      ${off.length ? `<p class="note info">${svg('info')}<span>Apagar aplica desde el próximo envío que se programe. Los leads que ya tenían agendado ${off.join(', ')} igual lo reciben.</span></p>` : ''}
-      ${meta ? `<p class="note warn">${svg('hourglass')}<span>Los mensajes con plantilla nuevos o editados pasan a revisión de Meta al guardar.</span></p>` : ''}</div>` : '');
+      ${off.length ? `<p class="note info">${svg('info')}<span>Apagar un paso aplica a los próximos envíos.<br>Los leads que ya tenían agendado ${off.join(', ')} lo reciben igual.</span></p>` : ''}
+      ${meta ? `<p class="note warn">${svg('hourglass')}<span>Al guardar, los mensajes con plantilla nuevos o editados pasan a revisión de Meta.</span></p>` : ''}</div>` : '');
 }
 function updateBar() {
   const groups = changeGroups(), n = changes(), hasBad = Object.keys(bad).length, miss = missing();
@@ -382,7 +381,7 @@ document.addEventListener('click', e => {
     }
     saved = structuredClone(draft); listOpen = false; render();
     toast(['Cambios guardados.', rev ? `Meta está revisando ${rev === 1 ? '1 mensaje con plantilla' : rev + ' mensajes con plantilla'}.` : '',
-      off.length ? `Los leads que ya tenían agendado ${off.join(', ')} igual lo reciben.` : ''].filter(Boolean).join(' '));
+      off.length ? `Los leads que ya tenían agendado ${off.join(', ')} lo reciben igual.` : ''].filter(Boolean).join(' '));
   }
 });
 document.addEventListener('input', e => {
@@ -412,7 +411,7 @@ const TASKS = [
     ask: true, expect: 'Los 1 a 3 caen dentro de las 24 h desde el último mensaje del lead. Después solo se pueden enviar plantillas aprobadas.' },
   { text: 'Cambia el mensaje del Reintento 3 de "Primer contacto" y guarda.',
     ok: () => saved.first.steps[2].msg !== SEED.first.steps[2].msg },
-  { text: 'En "Dejó de responder", haz que el Reintento 2 se active 5 horas después del paso anterior, y guarda.',
+  { text: 'En "Dejó de responder", haz que el Reintento 2 se active 5 horas después del paso anterior y guarda.',
     ok: () => saved.stopped.steps[1].wait === 300 },
   { text: 'En "Dejó de responder", apaga la llamada automática y guarda. ¿Qué pasa con los leads que ya la tenían agendada?',
     ask: true, ok: () => saved.stopped.steps[3].on === false, expect: 'La reciben igual: el cambio aplica a las siguientes' },
@@ -437,8 +436,10 @@ function renderTest() {
   el.classList.toggle('min', minimized);
   const head = phase === 'intro' ? 'Prueba v1 (propuesta)' : phase === 'end' ? 'Prueba terminada' : `Tarea ${ti + 1} de ${TASKS.length}`;
   let body = '';
-  if (phase === 'intro') body = `<p class="task">Trabajas en el equipo comercial de una constructora. Un asistente con IA les escribe por WhatsApp a las personas interesadas en un proyecto. Si alguien deja de responder, el asistente le vuelve a escribir solo, varias veces. Esta pantalla es donde configuras esos mensajes. Hoy te toca revisarla y hacer unos ajustes.</p>
-    <p class="sub">${TASKS.length} tareas. Cada una se cronometra. Al terminar cada tarea, dinos qué tan fácil fue.</p>
+  if (phase === 'intro') body = `<p class="task"><b>Trabajas en el equipo comercial de una constructora.</b></p>
+    <p class="task">Un asistente con IA les escribe por WhatsApp a las personas interesadas en un proyecto. Si alguien deja de responder, el asistente le vuelve a escribir solo.</p>
+    <p class="task">En esta pantalla configuras esos mensajes. Hoy vas a revisarla y hacer unos ajustes.</p>
+    <p class="sub">${TASKS.length} tareas. Cada una se cronometra.<br>Al terminar cada una, dinos qué tan fácil fue.</p>
     <div class="row"><button class="go" data-a="start">Empezar la prueba</button></div>`;
   if (phase === 'task') body = `<p class="task">${t.text}</p>
     ${t.ask ? '<textarea id="tans" placeholder="Escribe tu respuesta"></textarea>' : ''}

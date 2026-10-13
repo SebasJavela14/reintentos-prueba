@@ -130,7 +130,7 @@
   .test button.link { background: none; color: #999; padding: 8px 4px; font-weight: 400; text-decoration: underline; }
   .test .seq { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
   .test .seq button { padding: 8px 0; border-radius: 8px; }
-  .test .seqlab { display: flex; justify-content: space-between; color: #888; font-size: 11px; }
+  .test .seqlab { display: flex; justify-content: space-between; color: #999; font-size: 12px; }
   .test pre { white-space: pre-wrap; color: #9f9; font-size: 11px; margin: 0; max-height: 200px; overflow: auto; }
   .testhint { position: fixed; bottom: 72px; right: 16px; font: 600 12px system-ui; color: #fff; background: #111; border: 0; border-radius: 999px; padding: 8px 14px; cursor: pointer; z-index: 29; }
 </style>
@@ -318,7 +318,7 @@ const TASKS = [
     ask: true, expect: 'Los 1 a 3 caen dentro de las 24 h desde el último mensaje del lead. Después solo se pueden enviar plantillas aprobadas.' },
   { text: 'Cambia el mensaje del Reintento 3 de "Primer contacto" y guarda.',
     ok: () => saved.first.steps[2].msg !== SEED.first.steps[2].msg },
-  { text: 'En "Dejó de responder", haz que el Reintento 2 se active 5 horas después del paso anterior, y guarda.',
+  { text: 'En "Dejó de responder", haz que el Reintento 2 se active 5 horas después del paso anterior y guarda.',
     ok: () => saved.stopped.steps[1].wait === 300 },
   { text: 'En "Dejó de responder", apaga la llamada automática y guarda. ¿Qué pasa con los leads que ya la tenían agendada?',
     ask: true, ok: () => saved.stopped.steps[3].on === false, expect: 'La reciben igual: el cambio aplica a las siguientes' },
@@ -344,8 +344,10 @@ function renderTest() {
   el.classList.toggle('min', minimized);
   const head = phase === 'intro' ? 'Prueba de usabilidad' : phase === 'end' ? 'Prueba terminada' : `Tarea ${ti + 1} de ${TASKS.length}`;
   let body = '';
-  if (phase === 'intro') body = `<p class="task">Trabajas en el equipo comercial de una constructora. Un asistente con IA les escribe por WhatsApp a las personas interesadas en un proyecto. Si alguien deja de responder, el asistente le vuelve a escribir solo, varias veces. Esta pantalla es donde configuras esos mensajes. Hoy te toca revisarla y hacer unos ajustes.</p>
-    <p class="sub">${TASKS.length} tareas. Cada una se cronometra. Al terminar cada tarea, dinos qué tan fácil fue.</p>
+  if (phase === 'intro') body = `<p class="task"><b>Trabajas en el equipo comercial de una constructora.</b></p>
+    <p class="task">Un asistente con IA les escribe por WhatsApp a las personas interesadas en un proyecto. Si alguien deja de responder, el asistente le vuelve a escribir solo.</p>
+    <p class="task">En esta pantalla configuras esos mensajes. Hoy vas a revisarla y hacer unos ajustes.</p>
+    <p class="sub">${TASKS.length} tareas. Cada una se cronometra.<br>Al terminar cada una, dinos qué tan fácil fue.</p>
     <div class="row"><button class="go" data-a="start">Empezar la prueba</button></div>`;
   if (phase === 'task') body = `<p class="task">${t.text}</p>
     ${t.ask ? '<textarea id="tans" placeholder="Escribe tu respuesta"></textarea>' : ''}
