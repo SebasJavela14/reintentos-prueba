@@ -20,6 +20,13 @@
  *   ChangeBar            → .bar
  *   ConfirmModal         → .scrim .modal .mhead .mbody .mfoot · ChangesTable → .ctable .val
  *   Toast                → .toast (con acción "Deshacer")
+ *
+ * v2 (2026-10-13, después de la prueba con Lucho; sección al final del archivo):
+ *   StepCard v2          → .sh.sh2 .sico.ch-msg .sico.ch-call .ttl .chip .ty .state (cerrado · abierto · apagado · apagado abierto · hover · foco)
+ *   H24Marker            → .h24 .lab
+ *   CloseCard            → .step.endtotal
+ *   GuideLinks           → .links
+ *   WaitConnector v2     → .wait (16 al borde, 8 entre controles, unidad sin ancho fijo) · .offwhy
  */
 
   * { box-sizing: border-box; margin: 0; }
@@ -96,7 +103,7 @@
   .arrows button:hover:not(:disabled) { background: var(--accent); }
   .arrows button:disabled { color: var(--disabled-foreground); cursor: not-allowed; }
   .arrows .i { width: 14px; height: 14px; }
-  .wait select { width: 88px; text-align: right; text-align-last: right; height: 28px; border: 0; border-radius: var(--radius-full); padding: 0 var(--spacing-2); background: none; color: var(--foreground); font-weight: var(--font-weight-strong); cursor: pointer; }
+  .wait select { width: 108px; text-align: right; text-align-last: right; height: 28px; border: 0; border-radius: var(--radius-full); padding: 0 var(--spacing-2); background: none; color: var(--foreground); font-weight: var(--font-weight-strong); cursor: pointer; }
   .wait select:hover { background: var(--muted); }
   .wait input:focus, .wait select:focus { outline: 2px solid var(--ring); border-radius: var(--radius-sm); }
   .wait input.err { color: var(--hot); outline: 2px solid var(--hot); border-radius: var(--radius-sm); }
@@ -253,3 +260,102 @@
     *, *::before, *::after { animation-duration: 1ms !important; transition-duration: 1ms !important; }
   }
 
+
+  /* =================================================================================================
+     v2: reemplaza lo de arriba donde se repite el selector. La v1 usa components-v1.css (congelado).
+     ================================================================================================= */
+  /* ---------- v2: card de paso en una fila · marca de 24 h · cierre con total · guías ---------- */
+  .sh.sh2 { grid-template-columns: 40px 1fr auto 16px; padding: var(--spacing-4) var(--spacing-6) var(--spacing-4) var(--spacing-4); }
+  .sh2 .sico { width: 40px; height: 40px; }
+  .sh2 .sico .i { width: 18px; height: 18px; }
+  .sico.ch-msg, .sico.ch-call { background: var(--card); border: 1px solid var(--border); }
+  .sico.ch-msg { color: var(--channel-message); }
+  .sico.ch-call { color: var(--channel-call); }
+  .ttl { display: grid; justify-items: start; gap: var(--spacing-1); min-width: 0; }
+  .ttl .chip { display: inline-flex; align-items: center; height: 20px; padding: 0 var(--spacing-2); border-radius: var(--radius-sm); background: var(--muted); font: var(--type-caption-strong); }
+  .step.off .sh2 > :not(.chev):not(.state) { opacity: .5; }
+  .step.off .sh2 .state { opacity: 1; }
+  .sbody { gap: var(--spacing-6); } /* más aire al expandir (antes 16) */
+  .state { display: inline-flex; align-items: center; gap: var(--spacing-1); font: var(--type-caption); color: var(--muted-foreground); white-space: nowrap; }
+  .state .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--success); }
+  .state.off .dot { background: var(--disabled-foreground); }
+  .h24 { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: var(--spacing-3); padding-top: var(--spacing-6); }
+  .h24::before, .h24::after { content: ""; border-top: 1.5px dashed var(--input); }
+  .h24 .lab { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-full); padding: var(--spacing-1) var(--spacing-1) var(--spacing-1) var(--spacing-3); font: var(--type-caption-strong); display: inline-flex; gap: var(--spacing-1); align-items: center; white-space: nowrap; }
+  .h24 .tipbox, .h24 + .conn .tipbox { white-space: normal; }
+  .step.endtotal { border-color: var(--secondary); }
+  .endtotal .sico { background: var(--secondary); color: var(--secondary-foreground); }
+  /* Espera v2 (Practical UI: el espacio de adentro es menor que el de afuera; 8 entre controles, 16 a los bordes) */
+  .wait { gap: var(--spacing-2); padding: var(--spacing-1) var(--spacing-2) var(--spacing-1) var(--spacing-4); }
+  .wait input { width: 28px; margin-left: 0; }
+  .wait select { width: auto; text-align: left; text-align-last: left; padding: 0 var(--spacing-2); }
+  .conn .offwhy { position: relative; background: var(--muted); font: var(--type-caption); color: var(--muted-foreground); padding: 0 var(--spacing-2); }
+  .links { display: grid; }
+  .links a { display: flex; align-items: center; gap: var(--spacing-2); padding: var(--spacing-2) 0; color: var(--foreground); text-decoration: none; }
+  .links a:hover span { text-decoration: underline; }
+  .links a .i { margin-left: auto; color: var(--muted-foreground); width: 14px; height: 14px; }
+
+  /* =================================================================================================
+     Sync con Figma (2026-10-15, archivo vg78keStKVl0pGTYvqS8FO, página "Sistema de diseño").
+     Figma manda: cada regla dice qué spec de Figma replica. Detalle en ds/figma-sync-2026-10-14.md.
+     ================================================================================================= */
+  /* StepCard: chip en Caption regular; hover con borde input; foco con borde de 2 px ring */
+  .ttl .chip { font: var(--type-caption); color: var(--foreground); }
+  .ttl .ty { font: var(--type-body-strong); }
+  .step.off .ttl .ty { font: var(--type-body); }
+  @media (hover: hover) and (pointer: fine) { .step:not(.trig):hover { border-color: var(--input); } }
+  .step:has(> .sh:focus-visible) { border-color: var(--ring); box-shadow: 0 0 0 1px var(--ring); }
+  .step > .sh:focus-visible { outline: none; }
+  /* Detalle: padding 24; grupo con gap 16 (tipo + contenido) y 32 hasta "Usar este reintento" */
+  .sbody { padding: var(--spacing-6); gap: var(--spacing-8); }
+  .grp2 { display: grid; gap: var(--spacing-4); }
+  .grp2 .line .desc { text-align: right; }
+  /* Cierre: mismo encabezado que un paso, bandera en el círculo con borde */
+  .step.endtotal { border-color: var(--border); }
+  .sico.ch-end { background: var(--card); border: 1px solid var(--border); color: var(--foreground); }
+  .endtotal .sh2 { grid-template-columns: 40px 1fr; }
+  /* MessageField: texto en Caption; foco con borde secondary; vacío con padding 16 y "Usar ejemplo" abajo a la derecha */
+  .msg { font: var(--type-caption); padding: var(--spacing-2) var(--spacing-3); min-height: 0; }
+  .msgbox:focus-within { box-shadow: none; }
+  .msgbox.ex .msg { padding: var(--spacing-4) var(--spacing-4) 0; }
+  .msgbox.ex .acts2 { display: flex; justify-content: flex-end; padding: var(--spacing-2) var(--spacing-4) var(--spacing-4); }
+  .msgbox.ex .acts2 .inbtn { position: static; height: var(--control-height-sm); padding: 0 var(--spacing-2); font: var(--type-caption-strong); }
+  /* WaitConnector: línea de 1 px; número en peso normal; flechas en caja muted (px 4) con chevrons de 14 */
+  .conn::before { border-left-width: 1px; }
+  .wait input { font-weight: var(--font-weight-regular); }
+  .arrows { padding: 0 var(--spacing-1); }
+  .arrows button { width: 14px; height: 14px; }
+  .arrows .i { width: 14px; height: 14px; }
+  .wait select { font-weight: var(--font-weight-regular); }
+  /* H24Marker: etiqueta en Caption regular, ícono de ayuda 16 */
+  .h24 .lab { font: var(--type-caption); color: var(--foreground); }
+  .h24 .lab .tip, .h24 .lab .tip .i { width: 16px; height: 16px; }
+  /* FlowCard: encabezado con gap 8 y 16 hasta los datos */
+  .flow { gap: var(--spacing-2); }
+  .flow .stats { margin-top: var(--spacing-2); }
+  /* ChangeBar: conteo y aviso a 24; botones a la derecha con gap 12 */
+  .bar .block { margin-left: var(--spacing-3); }
+  /* ConfirmModal: sin subtítulo, 8 entre encabezado y contenido */
+  .modal { row-gap: var(--spacing-2); }
+  .x .i { width: 16px; height: 16px; }
+  /* Toast con acción: pr 8 */
+  .toast:has(.inbtn) { padding-right: var(--spacing-2); }
+  .toast .inbtn { height: var(--control-height-sm); padding: 0 var(--spacing-2); }
+  /* Shell como en Figma: sin íconos ni bandera; navegación Body strong con gap 24; sub-ítems a 44 */
+  .top nav { gap: var(--spacing-6); padding-left: var(--spacing-4); }
+  .top nav a { padding: 0; }
+  .lang { border-color: var(--sidebar-foreground); gap: var(--spacing-2); padding: var(--spacing-1) var(--spacing-4); height: auto; }
+  .lang .i { width: 14px; height: 14px; }
+  .side { padding: var(--spacing-2) 0 var(--spacing-4); }
+  .side .grp { padding: var(--spacing-3) var(--spacing-4); }
+  .side a { padding: var(--spacing-3) var(--spacing-4) var(--spacing-3) 44px; }
+  .side .user { padding: 0 var(--spacing-4); }
+  /* Pantalla (Entrega Final): columna izquierda de 412 (layout-list-width), sin migas; secuencia de 450 */
+  .body { grid-template-columns: var(--layout-list-width) 1fr; }
+  .seq { max-width: 450px; }
+  .left h1 { margin-top: 0; }
+  .seq .h24 { margin-left: -55px; margin-right: -55px; } /* H24Marker de 560, más ancho que los cards (Figma) */
+  /* TriggerCard como en Figma: mismo encabezado que un paso (círculo de 40 con borde, rayo oscuro de 18, padding 16/24) */
+  .trig .sh { grid-template-columns: 40px 1fr; padding: var(--spacing-4) var(--spacing-6) var(--spacing-4) var(--spacing-4); }
+  .trig .sico { width: 40px; height: 40px; background: var(--card); border: 1px solid var(--border); color: var(--foreground); }
+  .trig .sico .i { width: 18px; height: 18px; }
